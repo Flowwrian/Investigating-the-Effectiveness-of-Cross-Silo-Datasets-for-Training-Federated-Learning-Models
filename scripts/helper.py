@@ -10,7 +10,19 @@ class Dataset(Enum):
     Covid = 1
     Weather = 2
 
-def get_samples(data: DataFrame, n: int, dataset: Dataset = Dataset.Other, max_samples: int = 100000) -> list:
+def get_samples(data: DataFrame, n: int, dataset: Dataset = Dataset.Other, max_samples: int = 100000) -> pd.Series:
+    """
+    Generate samples from a given dataset. The samples are created by using a rolling window.
+    Args:
+        data (DataFrame): The dataset sampling from.
+        n (int): Number of records per sample.
+        dataset (Dataset): Enum for specifing which dataset you want to sample from.
+            Dataset.Covid: owid-covid-data.csv
+            Dataset.Weather: Weather data from ___
+            Dataset.Other: other datasets
+        max_samples (int): Maximum amount returned samples.
+    """
+
     samples = list()
     num_of_rows = len(data.index)
 
@@ -22,7 +34,7 @@ def get_samples(data: DataFrame, n: int, dataset: Dataset = Dataset.Other, max_s
                 samples.append(data.iloc[range(i,i+n)])
     #TODO write logic for weather/ other datasets
 
-    return samples
+    return pd.Series(samples)
 
 def _check_covid_dataset(data: DataFrame):
     return (data.location == data.location.iloc[0]).all()
