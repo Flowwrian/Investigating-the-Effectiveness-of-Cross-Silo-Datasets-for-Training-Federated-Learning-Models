@@ -39,9 +39,7 @@ class SklearnClient(fl.client.NumPyClient):
         return self.loss(self.Y_test, self.model.predict_proba(self.X_test)), len(self.X_test), {"accuracy": self.model.score(self.X_test, self.Y_test)}
 
     def info(self):
-        print(f'Class: {self.model}')
-        print(f'Number of training samples: {len(self.X_train)}')
-        print(f'Number of testing samples: {len(self.X_test)}')
+        print(f'Class: {self.model} \nNumber of training samples: {len(self.X_train)}\nNumber of testing samples: {len(self.X_test)}')
 
 
 def _get_model_params(model):

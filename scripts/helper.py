@@ -3,8 +3,8 @@ from datetime import datetime
 
 import pandas as pd
 from pandas import DataFrame
+from pandas import Series
 from sklearn.model_selection import train_test_split
-import flwr
 
 
 class Dataset(Enum):
@@ -12,7 +12,7 @@ class Dataset(Enum):
     Covid = 1
     Weather = 2
 
-def get_samples(data: DataFrame, n: int, dataset: Dataset = Dataset.Other, max_samples: int = 100000) -> pd.Series:
+def get_samples(data: DataFrame, n: int, dataset: Dataset = Dataset.Other, max_samples: int = 100000) -> Series:
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
@@ -42,7 +42,7 @@ def _check_covid_dataset(data: DataFrame):
     return (data.location == data.location.iloc[0]).all()
 
 
-def sample_split(data: pd.Series, testing_percentage: float, x_attributes: list[str], y_attribute: str):
+def sample_split(data: Series, testing_percentage: float, x_attributes: list[str], y_attribute: str):
     """
     Splits sample data in x_train, x_test, y_train and y_test. Only suitable for time series data.
     The function takes the last entry in each sample as y value.
@@ -53,7 +53,6 @@ def sample_split(data: pd.Series, testing_percentage: float, x_attributes: list[
         x_attributes (list[str]): The exogene variables used for input.
         y_attribute (str): The endogene variable (the expected model output).
     """
-
 
     sample_length = len(data.iloc[0].index)
     x_data = []

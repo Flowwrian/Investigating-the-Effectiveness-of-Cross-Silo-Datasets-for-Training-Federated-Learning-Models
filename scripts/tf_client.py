@@ -13,7 +13,7 @@ class TFClient(fl.client.NumPyClient):
         Y_test: Endogene variables used for testing.
     """
 
-    def __init__(self, model: tf.keras.Model, X_train, Y_train, X_test, Y_test, epochs: int = 10) -> None:
+    def __init__(self, model: tf.keras.Model, X_train, Y_train, X_test, Y_test, epochs: int) -> None:
         super().__init__()
         self.model = model
         self.X_train = X_train
@@ -37,6 +37,4 @@ class TFClient(fl.client.NumPyClient):
 
     def info(self):
         self.model.summary()
-        print(f'Number of training samples: {len(self.X_train)}')
-        print(f'Number of testing samples: {len(self.X_test)}')
-        print(f'Epochs: {str(self.epochs)}')
+        print(f'Number of training samples: {len(self.X_train)}\nNumber of testing samples: {len(self.X_test)}\nEpochs: {str(self.epochs)}')

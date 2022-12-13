@@ -23,6 +23,7 @@ ATTRIBUTES = []
 EPOCHS = 10
 VERBOSE = True
 
+
 if __name__ == "__main__":
     #Preprocess data
     data = pd.read_csv(DATA_PATH)
