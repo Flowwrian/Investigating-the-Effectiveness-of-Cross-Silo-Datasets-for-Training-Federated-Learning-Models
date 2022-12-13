@@ -20,6 +20,7 @@ def get_samples(data: DataFrame, n: int, dataset: Dataset = Dataset.Other, max_s
                 break
             if _check_covid_dataset(data.iloc[range(i,i+n)]):
                 samples.append(data.iloc[range(i,i+n)])
+    #TODO write logic for weather/ other datasets
 
     return samples
 
