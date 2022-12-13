@@ -7,6 +7,11 @@ from pandas import Series
 from sklearn.model_selection import train_test_split
 
 
+class Library(Enum):
+    Tensorflow = 1
+    Sklearn = 2
+
+
 class Dataset(Enum):
     Other = 0
     Covid = 1

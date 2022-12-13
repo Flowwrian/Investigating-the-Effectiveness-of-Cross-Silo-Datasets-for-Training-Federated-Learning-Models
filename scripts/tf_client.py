@@ -27,7 +27,7 @@ class TFClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.model.set_weights(parameters)
-        self.model.fit(self.X_train, self.Y_train, epochs=1, batch_size=32, steps_per_epoch=3)
+        self.model.fit(self.X_train, self.Y_train, epochs=self.epochs, batch_size=32, steps_per_epoch=3)
         return self.model.get_weights(), len(self.X_train), {}
 
     def evaluate(self, parameters, config):
