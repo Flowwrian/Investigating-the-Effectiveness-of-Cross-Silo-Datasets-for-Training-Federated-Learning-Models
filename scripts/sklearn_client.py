@@ -1,8 +1,6 @@
 import flwr as fl
-import numpy as np
-import helper
-
 from sklearn.model_selection import train_test_split
+
 
 class SklearnClient(fl.client.NumPyClient):
     """
@@ -16,8 +14,7 @@ class SklearnClient(fl.client.NumPyClient):
         Y_test: Endogene variables used for testing.
     """
 
-    #__init__ needed for modularity
-    def __init__(self, model, X_train, Y_train, loss, test_size) -> None:
+    def __init__(self, model, X_train, Y_train, loss, test_size: float) -> None:
         super().__init__()
         self.model = model
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X_train, Y_train, test_size=test_size)
@@ -29,7 +26,7 @@ class SklearnClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         #Set the model parameters
-        self._set_model_params(self.model, parameters) #Use self.model =  _set_model_params(self.model) instead?
+        self._set_model_params(self.model, parameters)
 
         #Train model
         self.model.fit(self.X_train, self.Y_train)

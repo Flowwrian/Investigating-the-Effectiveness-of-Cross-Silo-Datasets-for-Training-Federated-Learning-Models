@@ -1,5 +1,7 @@
 import flwr as fl
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
+
 
 class TFClient(fl.client.NumPyClient):
     """
@@ -13,13 +15,10 @@ class TFClient(fl.client.NumPyClient):
         Y_test: Endogene variables used for testing.
     """
 
-    def __init__(self, model: tf.keras.Model, X_train, Y_train, X_test, Y_test, epochs: int) -> None:
+    def __init__(self, model: tf.keras.Model, X_train, Y_train, epochs: int, test_size: float) -> None:
         super().__init__()
         self.model = model
-        self.X_train = X_train
-        self.Y_train = Y_train
-        self.X_test = X_test
-        self.Y_test = Y_test
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X_train, Y_train, test_size=test_size)
         self.epochs = epochs
 
     def get_parameters(self, config):

@@ -2,7 +2,6 @@ import math
 
 import pandas as pd
 import flwr
-
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
@@ -39,7 +38,6 @@ if __name__ == "__main__":
     #preprocess data
     data = pd.read_csv(DATA_PATH)
     x_train, y_train = helper.get_samples(data, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, DATASET, NUMBER_OF_SAMPLES)
-    #x_train, x_test, y_train, y_test = helper.sample_split(data_samples, PERCENTAGE_OF_TESTING_DATA, X_ATTRIBUTES, Y_ATTRIBUTE)
     if VERBOSE:
         print(f'Data loaded from {DATA_PATH} \nSplit into {str(NUMBER_OF_SAMPLES)} samples')
 
@@ -61,9 +59,9 @@ if __name__ == "__main__":
             helper.set_initial_parameters(new_model, LIBRARY, (ENTRIES_PER_SAMPLE-1) * len(X_ATTRIBUTES))
 
             return SklearnClient(new_model, x_train_cid, y_train_cid, LOSS, PERCENTAGE_OF_TESTING_DATA)
+            
         else:
-            return TFClient(MODEL, x_train_cid, y_train_cid, x_test_cid, y_test_cid, EPOCHS)
-        
+            return TFClient(MODEL, x_train_cid, y_train_cid, EPOCHS, PERCENTAGE_OF_TESTING_DATA) # type: ignore        
 
     #start simulation
     hist = flwr.simulation.start_simulation(
