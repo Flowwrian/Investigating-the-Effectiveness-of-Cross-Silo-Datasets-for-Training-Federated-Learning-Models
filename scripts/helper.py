@@ -1,9 +1,9 @@
 from enum import Enum
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from sklearn.model_selection import train_test_split
 
 
 class Library(Enum):
@@ -16,13 +16,13 @@ class Dataset(Enum):
     Covid = 1
     Weather = 2
 
-def get_samples(data: DataFrame, n: int, testing_percentage: float, x_attributes: list[str], y_attribute: str, dataset: Dataset = Dataset.Other, max_samples: int = 100000):
+#TODO change to tf.data since this implementation does not work
+def get_samples(data: DataFrame, n: int, x_attributes: list[str], y_attribute: str, dataset: Dataset = Dataset.Other, max_samples: int = 100000):
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
         data (DataFrame): The dataset sampling from.
         n (int): Number of records per sample.
-        testing_percentage (float): The percentage of data used for testing. Must be between 0 and 1.
         x_attributes (list[str]): The exogene variables used for input.
         y_attribute (str): The endogene variable (the expected model output).
         dataset (Dataset): Enum for specifing which dataset you want to sample from.
@@ -42,11 +42,11 @@ def get_samples(data: DataFrame, n: int, testing_percentage: float, x_attributes
             
             #check for nans
             if y_attribute in x_attributes:
-                new_data = data.iloc[range(i,i+n)][x_attributes]
+                new_data = data.iloc[range(i,i+n)][x_attributes] # type: ignore
             else:
-                new_data = data.iloc[range(i,i+n)][[*x_attributes, y_attribute]]
+                new_data = data.iloc[range(i,i+n)][[*x_attributes, y_attribute]] # type: ignore
 
-            if _check_covid_dataset(data.iloc[range(i,i+n)]) and _check_for_nans(new_data):
+            if _check_covid_dataset(data.iloc[range(i,i+n)]) and _check_for_nans(new_data): # type: ignore
                 samples.append(new_data)
     #TODO write logic for weather/ other datasets
 
@@ -67,7 +67,17 @@ def get_samples(data: DataFrame, n: int, testing_percentage: float, x_attributes
         y_data.append(new_y_data)
 
     #Scikit-Learn function used for convinience
-    return train_test_split(x_data, y_data, test_size=testing_percentage, random_state=0)
+    return x_data, y_data
+
+
+def set_initial_parameters(model, library: Library, shape) -> None:
+    if library == Library.Sklearn:
+        model.coef_ = np.zeros(shape)
+
+        try:
+            model.intercept_ = 0
+        except AttributeError:
+            return
 
 
 def _check_covid_dataset(data: DataFrame) -> bool:
