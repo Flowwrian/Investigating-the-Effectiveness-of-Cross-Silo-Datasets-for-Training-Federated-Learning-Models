@@ -2,13 +2,8 @@ import math
 
 import pandas as pd
 import flwr
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
 
 import helper
-from helper import Library
-from sklearn_client import SklearnClient
-from tf_client import TFClient
 
 
 #Set your parameters here
@@ -23,10 +18,9 @@ PERCENTAGE_OF_TESTING_DATA = 0.2
 #Clients
 NUMBER_OF_CLIENTS = 5
 #Model
-LIBRARY = Library.Sklearn
-MODEL = LinearRegression
+MODEL = "linear regression"
 #Scikit-Learn options
-LOSS = mean_squared_error
+LOSS = "MSE"
 #Tensorflow options
 EPOCHS = 10
 
@@ -49,19 +43,10 @@ if __name__ == "__main__":
 
         x_train_cid = x_train[idx_from:idx_to]
         y_train_cid = y_train[idx_from:idx_to]
+       
+        client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, LOSS, PERCENTAGE_OF_TESTING_DATA)
+        return client
 
-        if VERBOSE:
-            print(f'Client {cid} starting...')
-        if LIBRARY == Library.Sklearn:
-            #instantiate new model
-            new_model = MODEL()
-            #setting inital parameters for model
-            helper.set_initial_parameters(new_model, LIBRARY, (ENTRIES_PER_SAMPLE-1) * len(X_ATTRIBUTES))
-
-            return SklearnClient(new_model, x_train_cid, y_train_cid, LOSS, PERCENTAGE_OF_TESTING_DATA)
-            
-        else:
-            return TFClient(MODEL, x_train_cid, y_train_cid, EPOCHS, PERCENTAGE_OF_TESTING_DATA) # type: ignore        
 
     #start simulation
     hist = flwr.simulation.start_simulation(

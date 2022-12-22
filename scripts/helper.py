@@ -1,22 +1,24 @@
 from enum import Enum
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+import flwr as fl
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import LinearSVR
+from sklearn.neural_network import MLPRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error
 
+import tensorflow as tf
 
-class Library(Enum):
-    Tensorflow = 1
-    Sklearn = 2
-
+from sklearn_client import SklearnClient
 
 class Dataset(Enum):
     Other = 0
     Covid = 1
     Weather = 2
 
-#TODO change to tf.data since this implementation does not work
 def get_samples(data: DataFrame, n: int, x_attributes: list[str], y_attribute: str, dataset: Dataset = Dataset.Other, max_samples: int = 100000):
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
@@ -70,14 +72,13 @@ def get_samples(data: DataFrame, n: int, x_attributes: list[str], y_attribute: s
     return x_data, y_data
 
 
-def set_initial_parameters(model, library: Library, shape) -> None:
-    if library == Library.Sklearn:
-        model.coef_ = np.zeros(shape)
+def set_initial_parameters(model, shape) -> None:
+    model.coef_ = np.zeros(shape)
 
-        try:
-            model.intercept_ = 0
-        except AttributeError:
-            return
+    try:
+        model.intercept_ = 0
+    except AttributeError:
+        return
 
 
 def _check_covid_dataset(data: DataFrame) -> bool:
@@ -88,11 +89,52 @@ def _check_for_nans(data: DataFrame) -> bool:
     return not data.isnull().values.any()
 
 
-#used for testing purposes
-if __name__ == "__main__":
-    startTime = datetime.now()
-    test_data = pd.read_csv("datasets\\horizontal\\covid\\owid-covid-data.csv")
-    result = get_samples(test_data, 3, Dataset.Covid)
+def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, testing_data_percentage: float) -> fl.client.NumPyClient:
+    """
+    Create a Flower Client. 
 
-    print(len(result))
-    print(datetime.now() - startTime)
+    Args:
+    name (String): Specify which algorithm you want to use.\n
+        "linear regression"\n
+        "linearSVR"\n
+        "MLP regressor"\n
+        "decision tree"\n
+        "DL"
+    x_train: Exogene variables for training and testing.
+    y_train: Endogene variable for training and testing.
+    entries_per_sample (int): Number of X values per sample.
+    x_attributes (list): List with names of attributes for X values.
+    loss (String): Loss function used for evaluation.
+    testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
+    """
+    available_models = ["linear regression", "linearSVR", "MLP regressor", "decision tree", "DL"]
+    available_loss_functions = ["MSE"]
+    selected_loss = None
+
+    match loss:
+        case "MSE":
+            selected_loss = mean_squared_error
+        case _:
+            raise Exception(f'{loss} is not a supported loss function')
+
+
+    match name:
+        case "linear regression":
+            model = LinearRegression()
+            set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
+            return SklearnClient(model, x_train, y_train, selected_loss, testing_data_percentage)
+
+        case "linearSVR":
+            model = LinearSVR()
+            set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
+            return SklearnClient(model, x_train, y_train, selected_loss, testing_data_percentage)
+
+        case "MLP regressor":
+            model = MLPRegressor()
+            set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
+            return SklearnClient(model, x_train, y_train, selected_loss, testing_data_percentage)
+        
+        case _:
+            raise Exception(f'{name} is not a supported algorithm')
+
+    pass
