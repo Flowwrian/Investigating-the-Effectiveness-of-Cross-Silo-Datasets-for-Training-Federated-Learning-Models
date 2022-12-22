@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import flwr as fl
+
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import LinearSVR
 from sklearn.neural_network import MLPRegressor
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 import tensorflow as tf
 
@@ -108,12 +109,16 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
     testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
     """
     available_models = ["linear regression", "linearSVR", "MLP regressor", "decision tree", "DL"]
-    available_loss_functions = ["MSE"]
+    available_loss_functions = ["MSE", "MAE", "R2"]
     selected_loss = None
 
     match loss:
         case "MSE":
             selected_loss = mean_squared_error
+        case "MAE":
+            selected_loss = mean_absolute_error
+        case "R2":
+            selected_loss = r2_score
         case _:
             raise Exception(f'{loss} is not a supported loss function')
 
