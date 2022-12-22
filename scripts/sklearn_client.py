@@ -44,12 +44,12 @@ class SklearnClient(fl.client.NumPyClient):
 
 
     def _get_model_params(self, model):
-        if hasattr(model, "intercept_"):
-                params = [
+        try:
+            params = [
                     model.coef_,
                     model.intercept_
                 ]
-        else:
+        except AttributeError:
             params = [
                 model.coef_
             ]
