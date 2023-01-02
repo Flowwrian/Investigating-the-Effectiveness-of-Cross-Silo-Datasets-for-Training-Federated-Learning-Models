@@ -1,4 +1,5 @@
 import math
+import time
 
 import pandas as pd
 import flwr
@@ -30,10 +31,12 @@ VERBOSE = True
 
 
 if __name__ == "__main__":
+    start_sampling_timer = time.time()
     #preprocess data
     data = pd.read_csv(DATA_PATH)
     x_train, y_train = helper.get_samples(data, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, DATASET, NUMBER_OF_SAMPLES)
     if VERBOSE:
+        print(f'Data loaded after {time.time() - start_sampling_timer}')
         print(f'Data loaded from {DATA_PATH} \nSplit into {str(NUMBER_OF_SAMPLES)} samples')
 
     #define client_fn (here it's easier to access the dataset)
@@ -50,8 +53,10 @@ if __name__ == "__main__":
 
 
     #start simulation
+    start_simulation_timer = time.time()
     hist = flwr.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=NUMBER_OF_CLIENTS,
         config = flwr.server.ServerConfig(num_rounds=ROUNDS)
     )
+    print(f'Training finished after {time.time() - start_simulation_timer}')
