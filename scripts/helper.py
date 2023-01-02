@@ -14,6 +14,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import tensorflow as tf
 
 from sklearn_client import SklearnClient
+from tf_client import TFClient
 
 class Dataset(Enum):
     Other = 0
@@ -110,15 +111,21 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
     """
     available_models = ["linear regression", "linearSVR", "MLP regressor", "decision tree", "DL"]
     available_loss_functions = ["MSE", "MAE", "R2"]
-    selected_loss = None
+    selected_sk_loss = None
+    selected_tf_loss = tf.keras.losses.MeanSquaredError
+    selected_tf_metric = tf.keras.metrics.MeanSquaredError
 
     match loss:
         case "MSE":
-            selected_loss = mean_squared_error
+            selected_sk_loss = mean_squared_error
+            selected_tf_loss = tf.keras.losses.MeanSquaredError
+            selected_tf_metric = tf.keras.metrics.MeanSquaredError
         case "MAE":
-            selected_loss = mean_absolute_error
+            selected_sk_loss = mean_absolute_error
+            selected_tf_loss = tf.keras.losses.MeanAbsoluteError
+            selected_tf_metric = tf.keras.losses.MeanAbsoluteError
         case "R2":
-            selected_loss = r2_score
+            selected_sk_loss = r2_score
         case _:
             raise Exception(f'{loss} is not a supported loss function')
 
@@ -127,19 +134,32 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
         case "linear regression":
             model = LinearRegression()
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
-            return SklearnClient(model, x_train, y_train, selected_loss, testing_data_percentage)
+            return SklearnClient(model, x_train, y_train, selected_sk_loss, testing_data_percentage)
 
         case "linearSVR":
             model = LinearSVR()
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
-            return SklearnClient(model, x_train, y_train, selected_loss, testing_data_percentage)
+            return SklearnClient(model, x_train, y_train, selected_sk_loss, testing_data_percentage)
 
         case "MLP regressor":
-            model = MLPRegressor()
-            set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
-            return SklearnClient(model, x_train, y_train, selected_loss, testing_data_percentage)
-        
+            # model = MLPRegressor()
+            # model.fit([x_train[0]], [y_train[0]]) #fitting the first sample to generate coefs_
+            # return SklearnMLPClient(model, x_train, y_train, selected_loss, testing_data_percentage)
+            input_shape = np.array(x_train).shape[1]
+            model = tf.keras.Sequential()
+            model.add(tf.keras.layers.Input(shape=(input_shape,)))
+            model.add(tf.keras.layers.Dense(32))
+            model.add(tf.keras.layers.Dense(64))
+            model.add(tf.keras.layers.Dense(128))
+            model.add(tf.keras.layers.Dense(64))
+            model.add(tf.keras.layers.Dense(1))
+
+            model.compile(optimizer=tf.keras.optimizers.Adam(),
+                loss=selected_tf_loss(),
+                metrics=selected_tf_metric())
+
+            return TFClient(model, x_train, y_train, 10, 0.2)
+
+
         case _:
             raise Exception(f'{name} is not a supported algorithm')
-
-    pass

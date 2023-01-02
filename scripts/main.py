@@ -15,10 +15,11 @@ NUMBER_OF_SAMPLES = 100
 X_ATTRIBUTES = ["total_cases", "new_cases"]
 Y_ATTRIBUTE = "new_cases"
 PERCENTAGE_OF_TESTING_DATA = 0.2
+ROUNDS = 1
 #Clients
 NUMBER_OF_CLIENTS = 5
 #Model
-MODEL = "linear regression"
+MODEL = "MLP regressor"
 #Scikit-Learn options
 LOSS = "MSE"
 #Tensorflow options
@@ -52,5 +53,5 @@ if __name__ == "__main__":
     hist = flwr.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=NUMBER_OF_CLIENTS,
-        config = flwr.server.ServerConfig()
+        config = flwr.server.ServerConfig(num_rounds=ROUNDS)
     )
