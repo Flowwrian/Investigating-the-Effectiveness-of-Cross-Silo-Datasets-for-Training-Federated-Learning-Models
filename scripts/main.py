@@ -14,7 +14,7 @@ NUMBER_OF_SAMPLES = 1000000
 X_ATTRIBUTES = ["temp", "pres", "tsun"]
 Y_ATTRIBUTE = "temp"
 #Weather station details
-STATIONS = ["muenchen"]
+STATIONS = ["muenchen", "potsdam"]
 FL_SCENARIO = "mixed" # "mixed", "separate"
 PERCENTAGE_OF_TESTING_DATA = 0.2
 ROUNDS = 1
@@ -33,7 +33,19 @@ VERBOSE = True
 if __name__ == "__main__":
     start_sampling_timer = time.time()
     #preprocess data
-    x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[0], NUMBER_OF_SAMPLES) # type: ignore 
+    if DATA == "covid":
+        x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[0], NUMBER_OF_SAMPLES) # type: ignore 
+
+    if DATA == "weather" and FL_SCENARIO == "mixed":
+        x_train = []
+        y_train = []
+
+        #combine all stations data
+        for station in STATIONS:
+            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[0], NUMBER_OF_SAMPLES)
+            x_train = x_train + new_x_train
+            y_train = y_train + new_x_train
+
     if VERBOSE:
         print(f'Data loaded after {time.time() - start_sampling_timer}')
         print(f'{DATA} data loaded\nSplit into {str(NUMBER_OF_SAMPLES)} samples')
