@@ -1,7 +1,6 @@
 import math
 import time
 
-import pandas as pd
 import flwr
 
 import helper
@@ -9,19 +8,20 @@ import helper
 
 #Set your parameters here
 #Dataset
-DATA_PATH = "/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/horizontal/covid/owid-covid-data.csv"
-DATASET = helper.Dataset.Covid
+DATA = "weather"
 ENTRIES_PER_SAMPLE = 10
-NUMBER_OF_SAMPLES = 100
-X_ATTRIBUTES = ["total_cases", "new_cases"]
-Y_ATTRIBUTE = "new_cases"
+NUMBER_OF_SAMPLES = 1000000
+X_ATTRIBUTES = ["temp", "pres", "tsun"]
+Y_ATTRIBUTE = "temp"
+#Weather station details
+STATIONS = ["muenchen"]
+FL_SCENARIO = "mixed" # "mixed", "separate"
 PERCENTAGE_OF_TESTING_DATA = 0.2
 ROUNDS = 1
 #Clients
 NUMBER_OF_CLIENTS = 5
 #Model
 MODEL = "MLP regressor"
-#Scikit-Learn options
 LOSS = "MSE"
 #Tensorflow options
 EPOCHS = 10
@@ -33,11 +33,10 @@ VERBOSE = True
 if __name__ == "__main__":
     start_sampling_timer = time.time()
     #preprocess data
-    data = pd.read_csv(DATA_PATH)
-    x_train, y_train = helper.get_samples(data, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, DATASET, NUMBER_OF_SAMPLES)
+    x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[0], NUMBER_OF_SAMPLES) # type: ignore 
     if VERBOSE:
         print(f'Data loaded after {time.time() - start_sampling_timer}')
-        print(f'Data loaded from {DATA_PATH} \nSplit into {str(NUMBER_OF_SAMPLES)} samples')
+        print(f'{DATA} data loaded\nSplit into {str(NUMBER_OF_SAMPLES)} samples')
 
     #define client_fn (here it's easier to access the dataset)
     def client_fn(cid: str) -> flwr.client.NumPyClient:

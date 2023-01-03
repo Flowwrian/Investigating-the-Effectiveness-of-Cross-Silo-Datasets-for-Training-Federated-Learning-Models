@@ -1,5 +1,3 @@
-from enum import Enum
-
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -7,7 +5,6 @@ import flwr as fl
 
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import LinearSVR
-from sklearn.neural_network import MLPRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
@@ -16,12 +13,8 @@ import tensorflow as tf
 from sklearn_client import SklearnClient
 from tf_client import TFClient
 
-class Dataset(Enum):
-    Other = 0
-    Covid = 1
-    Weather = 2
 
-def get_samples(data: DataFrame, n: int, x_attributes: list[str], y_attribute: str, dataset: Dataset = Dataset.Other, max_samples: int = 100000):
+def get_samples(dataset: str, n: int, x_attributes: list[str], y_attribute: str, station: str, max_samples: int = 100000):
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
@@ -35,43 +28,14 @@ def get_samples(data: DataFrame, n: int, x_attributes: list[str], y_attribute: s
             Dataset.Other: other datasets
         max_samples (int): Maximum amount returned samples.
     """
+    if dataset == "covid": #Ensure that only data from the same country gets into one sample
+        return _get_samples_from_covid_data(n, x_attributes, y_attribute, max_samples)
 
-    samples = list()
-    num_of_rows = len(data.index)
+    elif dataset == "weather":
+        return _get_samples_from_weather_data(n, x_attributes, y_attribute, station, max_samples)
 
-    if dataset == Dataset.Covid: #Ensure that only data from the same country gets into one sample
-        for i in range(num_of_rows):
-            if i+n > num_of_rows or len(samples) == max_samples:
-                break
-            
-            #check for nans
-            if y_attribute in x_attributes:
-                new_data = data.iloc[range(i,i+n)][x_attributes] # type: ignore
-            else:
-                new_data = data.iloc[range(i,i+n)][[*x_attributes, y_attribute]] # type: ignore
-
-            if _check_covid_dataset(data.iloc[range(i,i+n)]) and _check_for_nans(new_data): # type: ignore
-                samples.append(new_data)
-    #TODO write logic for weather/ other datasets
-
-    data_series = pd.Series(samples)
-
-    #logic from sample_split starts here
-    sample_length = len(data_series.iloc[0].index)
-    x_data = []
-    y_data = []
-
-    for i in range(len(data_series)):
-        current_sample = data_series.iloc[i]
-        new_x_data = current_sample.iloc[range(0, sample_length - 1)][x_attributes]
-        new_y_data = current_sample.iloc[sample_length - 1][y_attribute]
-        
-        #if _check_for_nans(new_x_data) and _check_for_nans(new_y_data):
-        x_data.append(new_x_data.to_numpy().flatten())
-        y_data.append(new_y_data)
-
-    #Scikit-Learn function used for convinience
-    return x_data, y_data
+    else:
+        raise Exception(f'{dataset} is an unknown dataset')
 
 
 def set_initial_parameters(model, shape) -> None:
@@ -89,6 +53,67 @@ def _check_covid_dataset(data: DataFrame) -> bool:
 
 def _check_for_nans(data: DataFrame) -> bool:
     return not data.isnull().values.any()
+
+
+def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: str, max_samples):
+    data = pd.read_csv("/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/horizontal/covid/owid-covid-data.csv")
+    samples = list()
+    num_of_rows = len(data.index)
+
+
+    for i in range(num_of_rows):
+        if i+n > num_of_rows or len(samples) == max_samples:
+            break
+        
+        #check for nans
+        if y_attribute in x_attributes:
+            new_data = data.iloc[range(i,i+n)][x_attributes] # type: ignore
+        else:
+            new_data = data.iloc[range(i,i+n)][[*x_attributes, y_attribute]] # type: ignore
+
+        if _check_covid_dataset(data.iloc[range(i,i+n)]) and _check_for_nans(new_data): # type: ignore
+            samples.append(new_data)
+
+    data_series = pd.Series(samples)
+
+    #logic from sample_split starts here
+    sample_length = len(data_series.iloc[0].index)
+    x_data = []
+    y_data = []
+
+    for i in range(len(data_series)):
+        current_sample = data_series.iloc[i]
+        new_x_data = current_sample.iloc[range(0, sample_length - 1)][x_attributes]
+        new_y_data = current_sample.iloc[sample_length - 1][y_attribute]
+        
+        #if _check_for_nans(new_x_data) and _check_for_nans(new_y_data):
+        x_data.append(new_x_data.to_numpy().flatten())
+        y_data.append(new_y_data)
+
+    return x_data, y_data
+
+
+def _get_samples_from_weather_data(n: int, x_attributes: list, y_attribute: str, station: str, samples: int):
+    #load data
+    path = f"/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/vertical/weather/{station}.csv"
+    data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
+    tf_dataset = tf.data.Dataset.from_tensor_slices(dict(data))
+
+    x_train = []
+    y_train = []
+    #create batches of x and y data
+    for window in tf_dataset.batch(n+1, drop_remainder=True).take(samples):
+        new_df = pd.DataFrame(window)
+        new_x_data = new_df[x_attributes].iloc[:n]
+        new_y_data = new_df[y_attribute].iloc[-1]
+
+        if not new_x_data.isnull().values.any() and new_y_data != None: #check for NaNs
+            new_x_data = new_x_data.to_numpy().flatten()
+
+            x_train.append(new_x_data)
+            y_train.append(new_y_data)
+
+    return x_train, y_train
 
 
 def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, testing_data_percentage: float) -> fl.client.NumPyClient:
