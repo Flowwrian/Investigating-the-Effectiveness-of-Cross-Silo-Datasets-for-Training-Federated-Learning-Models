@@ -38,6 +38,12 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], y_attribute: str,
         raise Exception(f'{dataset} is an unknown dataset')
 
 
+def check_separate_weather_data(dataset: str, scenario: str, stations: list, client_num: int):
+    if dataset == "weather" and scenario == "separate":
+        if client_num != len(stations):
+            raise Exception(f'The number of clients is {str(client_num)}, while the number of stations is {str(len(stations))}.\nChange FL_SCENARIO to "mixed" or make sure the number of clients and weather stations is the same.')
+
+
 def set_initial_parameters(model, shape) -> None:
     model.coef_ = np.zeros(shape)
 
@@ -53,6 +59,9 @@ def _check_covid_dataset(data: DataFrame) -> bool:
 
 def _check_for_nans(data: DataFrame) -> bool:
     return not data.isnull().values.any()
+
+
+
 
 
 def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: str, max_samples):
