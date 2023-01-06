@@ -7,6 +7,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.preprocessing import StandardScaler
 
 import tensorflow as tf
 
@@ -125,7 +126,7 @@ def _get_samples_from_weather_data(n: int, x_attributes: list, y_attribute: str,
     return x_train, y_train
 
 
-def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, testing_data_percentage: float) -> fl.client.NumPyClient:
+def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
     """
     Create a Flower Client. 
 
@@ -182,10 +183,9 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
             input_shape = np.array(x_train).shape[1]
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Input(shape=(input_shape,)))
-            model.add(tf.keras.layers.Dense(32))
-            model.add(tf.keras.layers.Dense(64))
-            model.add(tf.keras.layers.Dense(128))
-            model.add(tf.keras.layers.Dense(64))
+            #add hidden layers
+            for layer in range(mlp_hidden_layers):
+                model.add(tf.keras.layers.Dense(64))
             model.add(tf.keras.layers.Dense(1))
 
             model.compile(optimizer=tf.keras.optimizers.Adam(),

@@ -25,6 +25,7 @@ MODEL = "MLP regressor"
 LOSS = "MSE"
 #Tensorflow options
 EPOCHS = 10
+MLP_HIDDEN_LAYERS = 1
 
 #Misc
 VERBOSE = True
@@ -71,7 +72,7 @@ if __name__ == "__main__":
             x_train_cid = x_train[idx_from:idx_to]
             y_train_cid = y_train[idx_from:idx_to]
        
-        client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, LOSS, PERCENTAGE_OF_TESTING_DATA)
+        client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, PERCENTAGE_OF_TESTING_DATA)
         return client
 
 
