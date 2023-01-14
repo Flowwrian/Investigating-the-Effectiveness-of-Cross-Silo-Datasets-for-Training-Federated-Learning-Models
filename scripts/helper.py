@@ -142,7 +142,11 @@ def _get_samples_from_weather_data(n: int, x_attributes: list, y_attribute: str,
             x_data.append(x_sample)
             y_data.append(y_sample)
 
-    return x_data[:num_of_samples], y_data[:num_of_samples]
+    #enusre that sample number is not out of range
+    if len(data.index) > num_of_samples:
+        return x_data[:num_of_samples], y_data[:num_of_samples]
+    else:
+        return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
 def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
