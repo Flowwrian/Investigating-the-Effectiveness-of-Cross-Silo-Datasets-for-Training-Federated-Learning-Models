@@ -1,3 +1,4 @@
+import os
 import math
 import time
 
@@ -6,23 +7,25 @@ import flwr
 import helper
 
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+
 #Set your parameters here
 #Dataset
 DATA = "weather"
 ENTRIES_PER_SAMPLE = 10
-NUMBER_OF_SAMPLES = 1000000
-X_ATTRIBUTES = ["temp", "pres", "tsun"]
+NUMBER_OF_SAMPLES = 10000
+X_ATTRIBUTES = ["temp"]
 Y_ATTRIBUTE = "temp"
 #Weather station details
 STATIONS = ["muenchen", "potsdam"]
-FL_SCENARIO = "separate" # "mixed", "separate"
+FL_SCENARIO = "mixed" # "mixed", "separate"
 PERCENTAGE_OF_TESTING_DATA = 0.2
 ROUNDS = 1
 #Clients
 NUMBER_OF_CLIENTS = 2
 #Model
 MODEL = "MLP regressor"
-LOSS = "MSE"
+LOSS = "MAE"
 #Tensorflow options
 EPOCHS = 10
 MLP_HIDDEN_LAYERS = 1

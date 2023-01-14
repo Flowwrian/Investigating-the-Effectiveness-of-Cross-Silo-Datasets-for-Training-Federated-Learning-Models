@@ -8,6 +8,7 @@ from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
+from sktime.forecasting.model_selection import SlidingWindowSplitter
 
 import tensorflow as tf
 
@@ -70,6 +71,17 @@ def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: s
     samples = list()
     num_of_rows = len(data.index)
 
+    #get the relevant rows & scale them
+    data_locations = data.location
+    scaler = StandardScaler()
+    if y_attribute in x_attributes:
+        scaled_data = scaler.fit_transform(data[x_attributes])
+        data = pd.DataFrame(scaled_data, columns=x_attributes)
+    else:
+        scaled_data = scaler.fit_transform(data[[*x_attributes, y_attribute]])
+        data = pd.DataFrame(scaled_data, columns=[*x_attributes, y_attribute])
+    data["location"] = data_locations
+
 
     for i in range(num_of_rows):
         if i+n > num_of_rows or len(samples) == max_samples:
@@ -77,9 +89,9 @@ def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: s
         
         #check for nans
         if y_attribute in x_attributes:
-            new_data = data.iloc[range(i,i+n)][x_attributes] # type: ignore
+            new_data = data.iloc[range(i,i+n)] # type: ignore
         else:
-            new_data = data.iloc[range(i,i+n)][[*x_attributes, y_attribute]] # type: ignore
+            new_data = data.iloc[range(i,i+n)] # type: ignore
 
         if _check_covid_dataset(data.iloc[range(i,i+n)]) and _check_for_nans(new_data): # type: ignore
             samples.append(new_data)
@@ -103,27 +115,34 @@ def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: s
     return x_data, y_data
 
 
-def _get_samples_from_weather_data(n: int, x_attributes: list, y_attribute: str, station: str, samples: int):
+def _get_samples_from_weather_data(n: int, x_attributes: list, y_attribute: str, station: str, num_of_samples: int):
     #load data
     path = f"/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/vertical/weather/{station}.csv"
     data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
-    tf_dataset = tf.data.Dataset.from_tensor_slices(dict(data))
+    
+    #scale the data
+    data = data.drop("time", axis=1)
+    data_columns = data.columns
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data)
+    data = pd.DataFrame(scaled_data, columns=data_columns)
 
-    x_train = []
-    y_train = []
-    #create batches of x and y data
-    for window in tf_dataset.batch(n+1, drop_remainder=True).take(samples):
-        new_df = pd.DataFrame(window)
-        new_x_data = new_df[x_attributes].iloc[:n]
-        new_y_data = new_df[y_attribute].iloc[-1]
+    #split the data
+    splitter = SlidingWindowSplitter(fh=1, window_length=n)
+    samples = splitter.split_series(data[x_attributes].to_numpy())
 
-        if not new_x_data.isnull().values.any() and new_y_data != None: #check for NaNs
-            new_x_data = new_x_data.to_numpy().flatten()
+    x_data = []
+    y_data = []
 
-            x_train.append(new_x_data)
-            y_train.append(new_y_data)
+    for sample in samples:
+        x_sample = sample[0].flatten()
+        y_sample = sample[1].flatten()[0] #the endogene temperature variable
 
-    return x_train, y_train
+        if not np.isnan(np.sum(x_sample)) and not np.isnan(y_sample): #check for nans
+            x_data.append(x_sample)
+            y_data.append(y_sample)
+
+    return x_data[:num_of_samples], y_data[:num_of_samples]
 
 
 def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
