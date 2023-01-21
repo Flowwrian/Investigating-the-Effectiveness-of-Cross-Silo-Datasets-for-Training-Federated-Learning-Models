@@ -34,7 +34,7 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], y_attribute: str,
         return _get_samples_from_covid_data(n, x_attributes, y_attribute, max_samples)
 
     elif dataset == "weather":
-        return _get_samples_from_weather_data(n, x_attributes, y_attribute, station, max_samples)
+        return _get_samples_from_weather_data(n, x_attributes, station, max_samples)
 
     else:
         raise Exception(f'{dataset} is an unknown dataset')
@@ -115,7 +115,7 @@ def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: s
     return x_data, y_data
 
 
-def _get_samples_from_weather_data(n: int, x_attributes: list, y_attribute: str, station: str, num_of_samples: int):
+def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num_of_samples: int):
     #load data
     path = f"/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/vertical/weather/{station}.csv"
     data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])

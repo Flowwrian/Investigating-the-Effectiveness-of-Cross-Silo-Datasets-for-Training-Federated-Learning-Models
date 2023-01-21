@@ -11,11 +11,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #Set your parameters here
 #Dataset
-DATA = "weather"
+DATA = "covid"
 ENTRIES_PER_SAMPLE = 10
 NUMBER_OF_SAMPLES = 10000
-X_ATTRIBUTES = ["temp"]
-Y_ATTRIBUTE = "temp"
+X_ATTRIBUTES = ["new_cases"]
+Y_ATTRIBUTE = "new_cases"
 #Weather station details
 STATIONS = ["muenchen", "potsdam"]
 FL_SCENARIO = "mixed" # "mixed", "separate"
