@@ -14,8 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 DATA = "weather" # "covid", "weather"
 ENTRIES_PER_SAMPLE = 10
 NUMBER_OF_SAMPLES = 10000
-X_ATTRIBUTES = ["temp"]
-Y_ATTRIBUTE = "temp"
+ATTRIBUTES = ["temp"]
 #Weather station details
 STATIONS = ["muenchen", "potsdam"]
 FL_SCENARIO = "separate" # "mixed", "separate"
@@ -41,7 +40,7 @@ if __name__ == "__main__":
     start_sampling_timer = time.time()
     #preprocess data
     if DATA == "covid":
-        x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[0], NUMBER_OF_SAMPLES) # type: ignore 
+        x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[0], NUMBER_OF_SAMPLES)
 
     if DATA == "weather" and FL_SCENARIO == "mixed":
         samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
@@ -50,7 +49,7 @@ if __name__ == "__main__":
 
         #combine all stations data
         for station in STATIONS:
-            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[0], samples_per_station)
+            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[0], samples_per_station)
             x_train = x_train + new_x_train
             y_train = y_train + new_x_train
 
@@ -63,7 +62,7 @@ if __name__ == "__main__":
         #create data for separate weather test case
         if DATA == "weather" and FL_SCENARIO == "separate":
             samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
-            x_train_cid, y_train_cid = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, Y_ATTRIBUTE, STATIONS[int(cid)], samples_per_station)
+            x_train_cid, y_train_cid = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[int(cid)], samples_per_station)
         
 
         #all other test cases
@@ -74,7 +73,7 @@ if __name__ == "__main__":
             x_train_cid = x_train[idx_from:idx_to]
             y_train_cid = y_train[idx_from:idx_to]
        
-        client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE, X_ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, PERCENTAGE_OF_TESTING_DATA)
+        client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE, ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, PERCENTAGE_OF_TESTING_DATA)
         return client
 
 

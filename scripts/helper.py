@@ -16,19 +16,18 @@ from sklearn_client import SklearnClient
 from tf_client import TFClient
 
 
-def get_samples(dataset: str, n: int, x_attributes: list[str], y_attribute: str, station: str, max_samples: int = 100000):
+def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, max_samples: int = 100000):
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
         data (str): The dataset sampling from. Can be 'covid' or 'weather'.
         n (int): Number of records per sample.
-        x_attributes (list[str]): The exogene variables used for input.
-        y_attribute (str): The endogene variable (the expected model output).
+        attributes (list[str]): A list of all variables used from the dataset. The first entry is the target value (endogene variable), as well as an exogene variable.
         station (str): The selected weather station. 
         max_samples (int): Maximum amount returned samples.
     """
     if dataset == "covid": #Ensure that only data from the same country gets into one sample
-        return _get_samples_from_covid_data(n, x_attributes, y_attribute, max_samples)
+        return _get_samples_from_covid_data(n, x_attributes, max_samples)
 
     elif dataset == "weather":
         return _get_samples_from_weather_data(n, x_attributes, station, max_samples)
@@ -63,58 +62,60 @@ def _check_for_nans(data: DataFrame) -> bool:
 
 
 
-def _get_samples_from_covid_data(n: int, x_attributes: list[str], y_attribute: str, max_samples):
-    data = pd.read_csv("/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/horizontal/covid/owid-covid-data.csv")
-    samples = list()
-    num_of_rows = len(data.index)
+def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int):
+    """
+    Generates samples from the covid dataset.
+    Args:
+        n (int): Numbers of records per sample.
+        attributes (list[str]): List of attributes that will be used from the dataset. The fist element is the endogene variable.
+        num_of_samples (int): Number of returned samples.
+    """
 
-    #get the relevant rows & scale them
-    data_locations = data.location
+
+    #load data
+    data = pd.read_csv("../datasets/horizontal/covid/owid-covid-data.csv")
+    
+    #scale the data
+    record_info = data[["iso_code", "continent", "location", "date", "tests_units"]]
+    data = data.drop(["iso_code", "continent", "location", "date", "tests_units"], axis=1)
+    data_columns = data.columns
     scaler = StandardScaler()
-    if y_attribute in x_attributes:
-        scaled_data = scaler.fit_transform(data[x_attributes])
-        data = pd.DataFrame(scaled_data, columns=x_attributes)
-    else:
-        scaled_data = scaler.fit_transform(data[[*x_attributes, y_attribute]])
-        data = pd.DataFrame(scaled_data, columns=[*x_attributes, y_attribute])
-    data["location"] = data_locations
+    scaled_data = scaler.fit_transform(data)
+    data = pd.DataFrame(scaled_data, columns=data_columns)
+    data = pd.concat([data, record_info], axis=1)
 
-
-    for i in range(num_of_rows):
-        if i+n > num_of_rows or len(samples) == max_samples:
-            break
-        
-        #check for nans
-        if y_attribute in x_attributes:
-            new_data = data.iloc[range(i,i+n)] # type: ignore
-        else:
-            new_data = data.iloc[range(i,i+n)] # type: ignore
-
-        if _check_covid_dataset(data.iloc[range(i,i+n)]) and _check_for_nans(new_data): # type: ignore
-            samples.append(new_data)
-
-    data_series = pd.Series(samples)
-
-    #logic from sample_split starts here
-    sample_length = len(data_series.iloc[0].index)
+    
     x_data = []
     y_data = []
 
-    for i in range(len(data_series)):
-        current_sample = data_series.iloc[i]
-        new_x_data = current_sample.iloc[range(0, sample_length - 1)][x_attributes]
-        new_y_data = current_sample.iloc[sample_length - 1][y_attribute]
-        
-        #if _check_for_nans(new_x_data) and _check_for_nans(new_y_data):
-        x_data.append(new_x_data.to_numpy().flatten())
-        y_data.append(new_y_data)
+    #split the data
+    countries = data.iso_code.drop_duplicates(keep="first")
+    countries = countries[countries != "ESH"] #drop ESH because it only has one entry
 
-    return x_data, y_data
+    for country in countries:
+        country_data = data[data.iso_code == country]
+
+        splitter = SlidingWindowSplitter(fh=1, window_length=n)
+        samples = splitter.split_series(country_data[attributes].to_numpy())
+
+        for sample in samples:
+            x_sample = sample[0].flatten()
+            y_sample = sample[1].flatten()[attributes.index("new_cases")]
+
+            if not np.isnan(np.sum(x_sample)) and not np.isnan(y_sample): #check for nans
+                    x_data.append(x_sample)
+                    y_data.append(y_sample)
+
+    #enusre that sample number is not out of range
+    if len(data.index) > num_of_samples:
+        return x_data[:num_of_samples], y_data[:num_of_samples]
+    else:
+        return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
 def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num_of_samples: int):
     #load data
-    path = f"/home/florian/bachelorarbeit/code/Cross-Silo-FL/datasets/vertical/weather/{station}.csv"
+    path = f"../datasets/vertical/weather/{station}.csv"
     data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
     
     #scale the data
