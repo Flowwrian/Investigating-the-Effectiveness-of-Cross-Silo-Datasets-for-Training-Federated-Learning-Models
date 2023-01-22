@@ -11,21 +11,21 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #Set your parameters here
 #Dataset
-DATA = "covid"
+DATA = "weather" # "covid", "weather"
 ENTRIES_PER_SAMPLE = 10
 NUMBER_OF_SAMPLES = 10000
-X_ATTRIBUTES = ["new_cases"]
-Y_ATTRIBUTE = "new_cases"
+X_ATTRIBUTES = ["temp"]
+Y_ATTRIBUTE = "temp"
 #Weather station details
 STATIONS = ["muenchen", "potsdam"]
-FL_SCENARIO = "mixed" # "mixed", "separate"
+FL_SCENARIO = "separate" # "mixed", "separate"
 PERCENTAGE_OF_TESTING_DATA = 0.2
 ROUNDS = 1
 #Clients
 NUMBER_OF_CLIENTS = 2
 #Model
-MODEL = "MLP regressor"
-LOSS = "MAE"
+MODEL = "MLP regressor" # "linear regression", "linearSVR", "MLP regressor", ("decision tree", "DL" not implemented yet)
+LOSS = "MAE" # "MSE", "MAE", "R2" (R2 only works for scikit-learn models)
 #Tensorflow options
 EPOCHS = 10
 MLP_HIDDEN_LAYERS = 1
@@ -68,7 +68,6 @@ if __name__ == "__main__":
 
         #all other test cases
         else:
-            #sample splitting logic from https://github.com/adap/flower/blob/b0bb1bb990373c35feaca9aca37c790fed029cf9/examples/simulation_tensorflow/sim.py#L48
             partition_size = math.floor(len(x_train) / NUMBER_OF_CLIENTS)
             idx_from, idx_to = int(cid) * partition_size, (int(cid) + 1) * partition_size
 

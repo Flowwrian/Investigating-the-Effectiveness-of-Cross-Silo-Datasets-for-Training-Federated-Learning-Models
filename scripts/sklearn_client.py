@@ -8,16 +8,16 @@ class SklearnClient(fl.client.NumPyClient):
 
     Args:
         model: The Scikit-Learn model. Must have the attribute coef_!
-        X_train: Exogene variables used for training.
-        Y_train: Endogene variables used for training.
-        X_test: Exogene variables used for testing.
-        Y_test: Endogene variables used for testing.
+        X: All exogene variables used in this client.
+        Y: All endogene variables used in this client.
+        loss: The loss function this client uses.
+        test_size: Percentage of data used for testing.
     """
 
-    def __init__(self, model, X_train, Y_train, loss, test_size: float) -> None:
+    def __init__(self, model, X, Y, loss, test_size: float) -> None:
         super().__init__()
         self.model = model
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X_train, Y_train, test_size=test_size)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size)
         self.loss = loss
 
 

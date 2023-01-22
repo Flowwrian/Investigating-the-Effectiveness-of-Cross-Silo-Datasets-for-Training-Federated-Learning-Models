@@ -10,16 +10,16 @@ class TFClient(fl.client.NumPyClient):
 
     Args:
         model (tf.keras.Model): The Tensorflow model. Must already be compiled!
-        X_train: Exogene variables used for training.
-        Y_train: Endogene variables used for training.
+        X: All exogene variables used in this client.
+        Y: All endogene variables used in this client.
         epochs (int): Number of training epochs.
         test_size (float): Percentage of test size.
     """
 
-    def __init__(self, model: tf.keras.Model, X_train, Y_train, epochs: int, test_size: float) -> None:
+    def __init__(self, model: tf.keras.Model, X, Y, epochs: int, test_size: float) -> None:
         super().__init__()
         self.model = model
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X_train, Y_train, test_size=test_size)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size)
         self.X_train = np.array(self.X_train)
         self.X_test = np.array(self.X_test)
         self.Y_train = np.array(self.Y_train)

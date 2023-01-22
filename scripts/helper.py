@@ -20,14 +20,11 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], y_attribute: str,
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
-        data (DataFrame): The dataset sampling from.
+        data (str): The dataset sampling from. Can be 'covid' or 'weather'.
         n (int): Number of records per sample.
         x_attributes (list[str]): The exogene variables used for input.
         y_attribute (str): The endogene variable (the expected model output).
-        dataset (Dataset): Enum for specifing which dataset you want to sample from.
-            Dataset.Covid: owid-covid-data.csv
-            Dataset.Weather: Weather data from ___
-            Dataset.Other: other datasets
+        station (str): The selected weather station. 
         max_samples (int): Maximum amount returned samples.
     """
     if dataset == "covid": #Ensure that only data from the same country gets into one sample
@@ -149,7 +146,7 @@ def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num
         return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
-def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
+def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
     """
     Create a Flower Client. 
 
@@ -158,13 +155,14 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
         "linear regression"\n
         "linearSVR"\n
         "MLP regressor"\n
-        "decision tree"\n
-        "DL"
-    x_train: Exogene variables for training and testing.
-    y_train: Endogene variable for training and testing.
+        "decision tree" (not implemented yet)\n
+        "DL" (not implemented yet)\n
+    X: Exogene variables for training and testing.
+    Y: Endogene variable for training and testing.
     entries_per_sample (int): Number of X values per sample.
     x_attributes (list): List with names of attributes for X values.
     loss (String): Loss function used for evaluation.
+    mlp_hidden_layers (int): Number of layers for Multi-layer perceptron.
     testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
     """
     available_models = ["linear regression", "linearSVR", "MLP regressor", "decision tree", "DL"]
@@ -192,22 +190,19 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
         case "linear regression":
             model = LinearRegression()
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
-            return SklearnClient(model, x_train, y_train, selected_sk_loss, testing_data_percentage)
+            return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
         case "linearSVR":
             model = LinearSVR()
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
-            return SklearnClient(model, x_train, y_train, selected_sk_loss, testing_data_percentage)
+            return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
         case "MLP regressor":
-            # model = MLPRegressor()
-            # model.fit([x_train[0]], [y_train[0]]) #fitting the first sample to generate coefs_
-            # return SklearnMLPClient(model, x_train, y_train, selected_loss, testing_data_percentage)
-            input_shape = np.array(x_train).shape[1]
+            input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Input(shape=(input_shape,)))
             #add hidden layers
-            for layer in range(mlp_hidden_layers):
+            for _ in range(mlp_hidden_layers):
                 model.add(tf.keras.layers.Dense(64))
             model.add(tf.keras.layers.Dense(1))
 
@@ -215,7 +210,7 @@ def create_client(name: str, x_train, y_train, entries_per_sample: int, x_attrib
                 loss=selected_tf_loss(),
                 metrics=selected_tf_metric())
 
-            return TFClient(model, x_train, y_train, 10, 0.2)
+            return TFClient(model, X, Y, 10, 0.2)
 
 
         case _:
