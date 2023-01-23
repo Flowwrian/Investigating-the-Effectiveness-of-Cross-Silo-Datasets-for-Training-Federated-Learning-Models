@@ -1,6 +1,6 @@
 import flwr as fl
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 
