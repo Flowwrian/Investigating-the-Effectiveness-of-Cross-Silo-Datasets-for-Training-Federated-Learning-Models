@@ -1,13 +1,12 @@
-import os
 import math
+import os
 import time
 
 import flwr
 
 import helper
 
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #Set your parameters here
 #Dataset
@@ -49,13 +48,13 @@ if __name__ == "__main__":
 
         #combine all stations data
         for station in STATIONS:
-            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[0], samples_per_station)
+            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, station, samples_per_station)
             x_train = x_train + new_x_train
             y_train = y_train + new_x_train
 
     if VERBOSE:
         print(f'Data loaded after {time.time() - start_sampling_timer}')
-        print(f'{DATA} data loaded\nSplit into {str(NUMBER_OF_SAMPLES)} samples')
+        print(f'{DATA} data loaded\nSplit into {NUMBER_OF_SAMPLES} samples')
 
 
     def client_fn(cid: str) -> flwr.client.NumPyClient:
@@ -63,7 +62,7 @@ if __name__ == "__main__":
         if DATA == "weather" and FL_SCENARIO == "separate":
             samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
             x_train_cid, y_train_cid = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[int(cid)], samples_per_station)
-        
+
 
         #all other test cases
         else:
@@ -72,7 +71,7 @@ if __name__ == "__main__":
 
             x_train_cid = x_train[idx_from:idx_to]
             y_train_cid = y_train[idx_from:idx_to]
-       
+
         client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE, ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, PERCENTAGE_OF_TESTING_DATA)
         return client
 

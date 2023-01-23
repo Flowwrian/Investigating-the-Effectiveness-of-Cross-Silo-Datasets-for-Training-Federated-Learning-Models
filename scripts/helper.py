@@ -1,16 +1,16 @@
+from pathlib import Path
+
+import flwr as fl
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from pandas import DataFrame
-import flwr as fl
-
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.preprocessing import StandardScaler
 from sktime.forecasting.model_selection import SlidingWindowSplitter
-
-import tensorflow as tf
 
 from sklearn_client import SklearnClient
 from tf_client import TFClient
@@ -23,7 +23,7 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, max
         data (str): The dataset sampling from. Can be 'covid' or 'weather'.
         n (int): Number of records per sample.
         attributes (list[str]): A list of all variables used from the dataset. The first entry is the target value (endogene variable), as well as an exogene variable.
-        station (str): The selected weather station. 
+        station (str): The selected weather station.
         max_samples (int): Maximum amount returned samples.
     """
     if dataset == "covid": #Ensure that only data from the same country gets into one sample
@@ -73,8 +73,8 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
 
 
     #load data
-    data = pd.read_csv("../datasets/horizontal/covid/owid-covid-data.csv")
-    
+    data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "horizontal", "covid", "owid-covid-data.csv"))
+
     #scale the data
     record_info = data[["iso_code", "continent", "location", "date", "tests_units"]]
     data = data.drop(["iso_code", "continent", "location", "date", "tests_units"], axis=1)
@@ -84,7 +84,7 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
     data = pd.DataFrame(scaled_data, columns=data_columns)
     data = pd.concat([data, record_info], axis=1)
 
-    
+
     x_data = []
     y_data = []
 
@@ -115,9 +115,9 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
 
 def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num_of_samples: int):
     #load data
-    path = f"../datasets/vertical/weather/{station}.csv"
+    path = Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv")
     data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
-    
+
     #scale the data
     data = data.drop("time", axis=1)
     data_columns = data.columns
@@ -149,7 +149,7 @@ def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num
 
 def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
     """
-    Create a Flower Client. 
+    Create a Flower Client.
 
     Args:
     name (String): Specify which algorithm you want to use.\n
