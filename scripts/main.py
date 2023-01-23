@@ -1,3 +1,4 @@
+import argparse
 import math
 import os
 import time
@@ -8,31 +9,56 @@ import helper
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-#Set your parameters here
-#Dataset
-DATA = "weather" # "covid", "weather"
-ENTRIES_PER_SAMPLE = 10
-NUMBER_OF_SAMPLES = 10000
-ATTRIBUTES = ["temp"]
-#Weather station details
-STATIONS = ["muenchen", "potsdam"]
-FL_SCENARIO = "separate" # "mixed", "separate"
-PERCENTAGE_OF_TESTING_DATA = 0.2
-ROUNDS = 1
-#Clients
-NUMBER_OF_CLIENTS = 2
-#Model
-MODEL = "MLP regressor" # "linear regression", "linearSVR", "MLP regressor", ("decision tree", "DL" not implemented yet)
-LOSS = "MAE" # "MSE", "MAE", "R2" (R2 only works for scikit-learn models)
-#Tensorflow options
-EPOCHS = 10
-MLP_HIDDEN_LAYERS = 1
 
-#Misc
-VERBOSE = True
+def parse_args():
+    parser = argparse.ArgumentParser(description="A sandbox FL environment")
+
+    parser.add_argument("--model", "--m", type=str, required=True, choices=["linear regression", "linearSVR", "MLP regressor"], help="ML algorithm used for trining")
+    parser.add_argument("--dataset", "--d", type=str, required=True, choices=["covid", "weather"], help="dataset used for training")
+    parser.add_argument("--attributes", "--a", nargs="+", required=True, help="selected attributes from the dataset")
+    parser.add_argument("--rounds", "--r", type=int,  required=True, help="rounds of federated learning")
+    parser.add_argument("--clients", "--c", type=int, required=True, help="number of clients")
+    parser.add_argument("--loss", "--l", type=str, required=True, choices=["MSE", "MAE", "R2"], help="selected loss function (R2 only available for Scikit-learn models)")
+    parser.add_argument("--stations", "--st", nargs="+",choices=["berlin_alexanderplatz", "frankfurt_am_main_westend", "hamburg_airport", "leipzig", "muenchen", "potsdam"], default=["berlin"], help="OPTIONAL selected weather stations; only relevant for 'weather' dataset")
+    parser.add_argument("--entries", "--e", type=int, default=10, help="OPTIONAL number of past days values to predict the next days target value")
+    parser.add_argument("--samples", "--sa", type=int, default=100000, help="OPTIONAL number of records to use")
+    parser.add_argument("--scenario", "--sc", type=str, choices=["separate", "mixed"], default="separate", help="OPTIONAL scenario of training. Can either be an federated learning or distributed learning setting")
+    parser.add_argument("--testing_data", "--t", type=float, default=0.2, help="OPTIONAL percentage of data used for training")
+    parser.add_argument("--epochs", "--ep", type=int, default=10, help="OPTIONAL number of epochs; only relevant for Tensorflow models")
+    parser.add_argument("--hidden_layers", "--hl", type=int, default=1, help="OPTIONAL number of hidden layers; only relevant for Tensorflow models")
+    parser.add_argument("--verbosity", "--v", type=bool, default=True, help="OPTIONAL verbosity of the output")
+
+    return parser.parse_args()
+
 
 
 if __name__ == "__main__":
+    args = parse_args()
+
+    #PARAMETERS
+    #Dataset
+    DATA = args.dataset # "covid", "weather" 
+    ENTRIES_PER_SAMPLE = args.entries
+    NUMBER_OF_SAMPLES = args.samples
+    ATTRIBUTES = args.attributes 
+    #Weather station details
+    STATIONS = args.stations
+    FL_SCENARIO = args.scenario # "mixed", "separate"
+    PERCENTAGE_OF_TESTING_DATA = args.testing_data
+    ROUNDS = args.rounds 
+    #Clients
+    NUMBER_OF_CLIENTS = args.clients 
+    #Model
+    MODEL = args.model # "linear regression", "linearSVR", "MLP regressor", ("decision tree", "DL" not implemented yet)
+    LOSS = args.loss # "MSE", "MAE", "R2" (R2 only works for scikit-learn models)
+    #Tensorflow options
+    EPOCHS = args.epochs
+    MLP_HIDDEN_LAYERS = args.hidden_layers
+
+    #Misc
+    VERBOSE = args.verbosity
+
+
     #check if weather number of stations equals number of clients; only important for DATA = "weather" and FL_SCENARIO = "separate"
     helper.check_separate_weather_data(DATA, FL_SCENARIO, STATIONS, NUMBER_OF_CLIENTS)
 
