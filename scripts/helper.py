@@ -31,7 +31,7 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, ser
         return _get_samples_from_covid_data(n, x_attributes, max_samples, serialize)
 
     elif dataset == "weather":
-        return _get_samples_from_weather_data(n, x_attributes, station, max_samples)
+        return _get_samples_from_weather_data(n, x_attributes, station, max_samples, serialize)
 
     else:
         raise Exception(f'{dataset} is an unknown dataset')
@@ -63,7 +63,7 @@ def _check_for_nans(data: DataFrame) -> bool:
 
 
 
-def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int, serialize):
+def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int, serialize: bool):
     """
     Generates samples from the covid dataset.
     Args:
@@ -133,10 +133,24 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
         return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
-def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num_of_samples: int):
+def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_of_samples: int, serialize: bool):
     #load data
-    path = Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv")
-    data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
+    dataset_path = Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv")
+    data = pd.read_csv(dataset_path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
+
+    #load data if already serialized
+    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'weather_{n}_{station}_{"_".join(attributes)}.pkl')
+    if path.exists():
+        pkl_file = open(path, 'rb')
+        x_data, y_data = pickle.load(pkl_file)
+        pkl_file.close()
+        
+        if len(data.index) > num_of_samples:
+            return x_data[:num_of_samples], y_data[:num_of_samples]
+
+        else:
+            return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
+
 
     #scale the data
     data = data.drop("time", axis=1)
@@ -147,7 +161,7 @@ def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num
 
     #split the data
     splitter = SlidingWindowSplitter(fh=1, window_length=n)
-    samples = splitter.split_series(data[x_attributes].to_numpy())
+    samples = splitter.split_series(data[attributes].to_numpy())
 
     x_data = []
     y_data = []
@@ -159,6 +173,12 @@ def _get_samples_from_weather_data(n: int, x_attributes: list, station: str, num
         if not np.isnan(np.sum(x_sample)) and not np.isnan(y_sample): #check for nans
             x_data.append(x_sample)
             y_data.append(y_sample)
+
+    #save data
+    if serialize:
+        output = open(path, "wb")
+        pickle.dump((x_data, y_data), output)
+        output.close()
 
     #enusre that sample number is not out of range
     if len(data.index) > num_of_samples:
