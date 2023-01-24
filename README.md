@@ -3,11 +3,10 @@ This repository contains all the code used for the experiments presented in the 
 
 ## Usage
 The code is written in Python 3.10.6.
-To start a federated learning scenario `cd` in the `scripts` folder and execute the `main.py` (i.e. `python main.py`). The parameters of the experiment are defined at the top of the `main.py` file (for now). At the moment the parameters are changed by changing the string inside the variable.
+To start a federated learning scenario `cd` in the `scripts` folder and execute the `main.py` (i.e. `python main.py`) with your selected options. To see a comprehensive list of all available parameters enter `python main.py -h`.
 
 ## TODO
 - Fix problem with measuring training time
-- Save logs
-- Implement Argsparse
+- Save remaining logs
 - Implement Deep-learning architecture specifically designed for time-series regression
 - Implement Decision Tree Regressor
