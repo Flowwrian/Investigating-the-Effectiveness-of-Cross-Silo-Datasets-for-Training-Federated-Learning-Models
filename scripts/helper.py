@@ -1,4 +1,5 @@
 from pathlib import Path
+import pickle
 
 import flwr as fl
 import numpy as np
@@ -16,7 +17,7 @@ from sklearn_client import SklearnClient
 from tf_client import TFClient
 
 
-def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, max_samples: int = 100000):
+def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, serialize: bool, max_samples: int = 100000):
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
@@ -27,7 +28,7 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, max
         max_samples (int): Maximum amount returned samples.
     """
     if dataset == "covid": #Ensure that only data from the same country gets into one sample
-        return _get_samples_from_covid_data(n, x_attributes, max_samples)
+        return _get_samples_from_covid_data(n, x_attributes, max_samples, serialize)
 
     elif dataset == "weather":
         return _get_samples_from_weather_data(n, x_attributes, station, max_samples)
@@ -62,7 +63,7 @@ def _check_for_nans(data: DataFrame) -> bool:
 
 
 
-def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int):
+def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int, serialize):
     """
     Generates samples from the covid dataset.
     Args:
@@ -71,9 +72,22 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
         num_of_samples (int): Number of returned samples.
     """
 
-
     #load data
     data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "horizontal", "covid", "owid-covid-data.csv"))
+
+    #load data if already serialized
+    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'covid_{n}_{"_".join(attributes)}.pkl')
+    if path.exists():
+        pkl_file = open(path, 'rb')
+        x_data, y_data = pickle.load(pkl_file)
+        pkl_file.close()
+        
+        if len(data.index) > num_of_samples:
+            return x_data[:num_of_samples], y_data[:num_of_samples]
+
+        else:
+            return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
+
 
     #scale the data
     record_info = data[["iso_code", "continent", "location", "date", "tests_units"]]
@@ -106,6 +120,12 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
                     x_data.append(x_sample)
                     y_data.append(y_sample)
 
+    #save data
+    if serialize:
+        output = open(path, "wb")
+        pickle.dump((x_data, y_data), output)
+        output.close()
+    
     #enusre that sample number is not out of range
     if len(data.index) > num_of_samples:
         return x_data[:num_of_samples], y_data[:num_of_samples]

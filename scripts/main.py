@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--epochs", "--ep", type=int, default=10, help="OPTIONAL number of epochs; only relevant for Tensorflow models")
     parser.add_argument("--hidden_layers", "--hl", type=int, default=1, help="OPTIONAL number of hidden layers; only relevant for Tensorflow models")
     parser.add_argument("--verbosity", "--v", type=bool, default=True, help="OPTIONAL verbosity of the output")
+    parser.add_argument("--serialize", "--se", type=bool, default=True, help="OPTIONAL serialize the sampled data. Drastically reduces time preprocessing the data")
 
     return parser.parse_args()
 
@@ -57,6 +58,7 @@ if __name__ == "__main__":
 
     #Misc
     VERBOSE = args.verbosity
+    SERIALIZE = args.serialize
 
 
     #check if weather number of stations equals number of clients; only important for DATA = "weather" and FL_SCENARIO = "separate"
@@ -65,7 +67,7 @@ if __name__ == "__main__":
     start_sampling_timer = time.time()
     #preprocess data
     if DATA == "covid":
-        x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[0], NUMBER_OF_SAMPLES)
+        x_train, y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[0], SERIALIZE, NUMBER_OF_SAMPLES)
 
     if DATA == "weather" and FL_SCENARIO == "mixed":
         samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
@@ -74,7 +76,7 @@ if __name__ == "__main__":
 
         #combine all stations data
         for station in STATIONS:
-            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, station, samples_per_station)
+            new_x_train, new_y_train = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, station, SERIALIZE, samples_per_station)
             x_train = x_train + new_x_train
             y_train = y_train + new_x_train
 
@@ -87,7 +89,7 @@ if __name__ == "__main__":
         #create data for separate weather test case
         if DATA == "weather" and FL_SCENARIO == "separate":
             samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
-            x_train_cid, y_train_cid = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[int(cid)], samples_per_station)
+            x_train_cid, y_train_cid = helper.get_samples(DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[int(cid)], SERIALIZE, samples_per_station)
 
 
         #all other test cases
