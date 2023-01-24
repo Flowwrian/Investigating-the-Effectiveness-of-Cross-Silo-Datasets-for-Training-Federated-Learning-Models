@@ -1,0 +1,107 @@
+{
+    "date": {
+        "0": 1674595,
+        "1": 1674595547000,
+        "2": "2023-01-24 21:26:42"
+    },
+    "model": {
+        "0": "MLP regressor",
+        "1": "MLP regressor",
+        "2": "MLP regressor"
+    },
+    "dataset": {
+        "0": "weather",
+        "1": "weather",
+        "2": "weather"
+    },
+    "rounds": {
+        "0": 1,
+        "1": 1,
+        "2": 1
+    },
+    "losses_distributed": {
+        "0": [
+            [
+                1,
+                0.2412776545
+            ]
+        ],
+        "1": [
+            [
+                1,
+                0.237731227
+            ]
+        ],
+        "2": [
+            [
+                1,
+                0.2369936156
+            ]
+        ]
+    },
+    "number_of_clients": {
+        "0": 2,
+        "1": 2,
+        "2": 2
+    },
+    "entries": {
+        "0": 10,
+        "1": 10,
+        "2": 10
+    },
+    "number_of_samples": {
+        "0": 100000,
+        "1": 100000,
+        "2": 100000
+    },
+    "attributes": {
+        "0": [
+            "temp"
+        ],
+        "1": [
+            "temp"
+        ],
+        "2": [
+            "temp"
+        ]
+    },
+    "stations": {
+        "0": [
+            "potsdam",
+            "muenchen"
+        ],
+        "1": [
+            "potsdam",
+            "muenchen"
+        ],
+        "2": [
+            "potsdam",
+            "muenchen"
+        ]
+    },
+    "scenario": {
+        "0": "separate",
+        "1": "separate",
+        "2": "separate"
+    },
+    "percentage_of_testing_data": {
+        "0": 0.2,
+        "1": 0.2,
+        "2": 0.2
+    },
+    "loss": {
+        "0": "MAE",
+        "1": "MAE",
+        "2": "MAE"
+    },
+    "epochs": {
+        "0": 10,
+        "1": 10,
+        "2": 10
+    },
+    "hidden_layers": {
+        "0": 1,
+        "1": 1,
+        "2": 1
+    }
+}

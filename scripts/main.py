@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument("--hidden_layers", "--hl", type=int, default=1, help="OPTIONAL number of hidden layers; only relevant for Tensorflow models")
     parser.add_argument("--verbosity", "--v", type=bool, default=True, help="OPTIONAL verbosity of the output")
     parser.add_argument("--serialize", "--se", type=bool, default=True, help="OPTIONAL serialize the sampled data. Drastically reduces time preprocessing the data")
+    parser.add_argument("--log", type=bool, default=False, help="OPTIONAL save the results of the training to logs.json")
 
     return parser.parse_args()
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
     #Misc
     VERBOSE = args.verbosity
     SERIALIZE = args.serialize
+    LOG = args.log
 
 
     #check if weather number of stations equals number of clients; only important for DATA = "weather" and FL_SCENARIO = "separate"
@@ -112,3 +114,6 @@ if __name__ == "__main__":
         config = flwr.server.ServerConfig(num_rounds=ROUNDS)
     )
     print(f'Training finished after {time.time() - start_simulation_timer}')
+    
+    if LOG:
+        helper.save_results(hist, args)
