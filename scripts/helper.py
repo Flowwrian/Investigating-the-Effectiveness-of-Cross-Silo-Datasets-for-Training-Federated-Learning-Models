@@ -1,6 +1,6 @@
 from pathlib import Path
 import pickle
-from time import strftime
+from time import strftime, localtime
 import argparse
 
 import flwr as fl
@@ -269,9 +269,14 @@ def save_results(history: History, args: argparse.Namespace):
         args (argparse.Namespace):  Selected training options.
     """
     columns = ["date", "model", "dataset", "rounds", "losses_distributed", "number_of_clients", "entries", "number_of_samples", "attributes", "stations", "scenario", "percentage_of_testing_data", "loss", "epochs", "hidden_layers"]
-    date = strftime("%Y-%m-%d %H:%M:%S")
+    date = strftime("%Y-%m-%d %H:%M:%S", localtime())
     results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history.losses_distributed, args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
 
     #read in json file and append new data
-    old_data = pd.read_json(Path(__file__).parent.parent.joinpath("logs.json"))
-    pd.concat([old_data, results], ignore_index=True).to_json(Path(__file__).parent.parent.joinpath("logs.json"))
+    try:
+        old_data = pd.read_json(Path(__file__).parent.parent.joinpath("logs.json"))
+        pd.concat([old_data, results], ignore_index=True).to_json(Path(__file__).parent.parent.joinpath("logs.json"))
+        print("Results saved to logs.json.")
+    except:
+        results.to_json(Path(__file__).parent.parent.joinpath("logs.json"))
+        print("New logs.json file created. Results saved.")
