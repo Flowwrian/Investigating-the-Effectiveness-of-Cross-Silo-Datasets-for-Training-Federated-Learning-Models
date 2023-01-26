@@ -10,7 +10,7 @@ import pandas as pd
 import tensorflow as tf
 from pandas import DataFrame
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
@@ -210,7 +210,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
     testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
     """
     available_models = ["linear regression", "linearSVR", "MLP regressor", "decision tree", "DL"]
-    available_loss_functions = ["MSE", "MAE", "R2"]
+    available_loss_functions = ["MSE", "MAE", "R2", "MAPE"]
     selected_sk_loss = None
     selected_tf_loss = tf.keras.losses.MeanSquaredError
     selected_tf_metric = tf.keras.metrics.MeanSquaredError
@@ -223,7 +223,11 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
         case "MAE":
             selected_sk_loss = mean_absolute_error
             selected_tf_loss = tf.keras.losses.MeanAbsoluteError
-            selected_tf_metric = tf.keras.losses.MeanAbsoluteError
+            selected_tf_metric = tf.keras.metrics.MeanAbsoluteError
+        case "MAPE":
+            selected_sk_loss = mean_absolute_percentage_error
+            selected_tf_loss = tf.keras.losses.MeanAbsolutePercentageError
+            selected_tf_metric = tf.keras.metrics.MeanAbsolutePercentageError
         case "R2":
             selected_sk_loss = r2_score
         case _:

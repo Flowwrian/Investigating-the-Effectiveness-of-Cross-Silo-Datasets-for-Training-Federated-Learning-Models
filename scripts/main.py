@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument("--attributes", "--a", nargs="+", required=True, help="selected attributes from the dataset")
     parser.add_argument("--rounds", "--r", type=int,  required=True, help="rounds of federated learning")
     parser.add_argument("--clients", "--c", type=int, required=True, help="number of clients")
-    parser.add_argument("--loss", "--l", type=str, required=True, choices=["MSE", "MAE", "R2"], help="selected loss function (R2 only available for Scikit-learn models)")
+    parser.add_argument("--loss", "--l", type=str, required=True, choices=["MSE", "MAE", "R2", "MAPE"], help="selected loss function (R2 only available for Scikit-learn models)")
     parser.add_argument("--stations", "--st", nargs="+",choices=["berlin_alexanderplatz", "frankfurt_am_main_westend", "hamburg_airport", "leipzig", "muenchen", "potsdam"], default=["berlin"], help="OPTIONAL selected weather stations; only relevant for 'weather' dataset")
     parser.add_argument("--entries", "--e", type=int, default=10, help="OPTIONAL number of past days values to predict the next days target value")
     parser.add_argument("--samples", "--sa", type=int, default=100000, help="OPTIONAL number of records to use")
