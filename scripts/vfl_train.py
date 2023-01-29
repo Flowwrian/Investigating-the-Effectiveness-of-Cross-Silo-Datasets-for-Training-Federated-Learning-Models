@@ -13,7 +13,7 @@ MAX_SAMPLES = 30000
 EPOCHS = 10
 
 if CLIENTS != len(ATTRIBUTES):
-    Exception(f'Clients has to be the same as attribute length. {CLIENTS} clients and {len(ATTRIBUTES)} attributes found.')
+    raise Exception(f'Clients has to be the same as attribute length. {CLIENTS} clients and {len(ATTRIBUTES)} attributes found.')
 
 
 #load data
