@@ -91,15 +91,32 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
         else:
             return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
+    #fill nan with 0
+    data[attributes] = data[attributes].fillna(0)
+    data["new_cases"] = data["new_cases"].fillna(0)
 
-    #scale the data
+    # #scale the data
     record_info = data[["iso_code", "continent", "location", "date", "tests_units"]]
-    data = data.drop(["iso_code", "continent", "location", "date", "tests_units"], axis=1)
-    data_columns = data.columns
+
+    #scale selected attributes
+    selected_data = data[attributes]
+    selected_data_columns = selected_data.columns
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data)
-    data = pd.DataFrame(scaled_data, columns=data_columns)
-    data = pd.concat([data, record_info], axis=1)
+    scaled_selected_data = scaler.fit_transform(selected_data)
+    selected_data = pd.DataFrame(scaled_selected_data, columns=selected_data_columns)
+
+    #scale 'new_cases' (target)
+    if not "new_cases" in attributes:
+        new_cases_data = data[["new_cases"]]
+        scaler = StandardScaler()
+        scaled_new_cases_data = scaler.fit_transform(new_cases_data)
+        new_cases_data = pd.DataFrame(scaled_new_cases_data, columns=["new_cases"])
+
+        #combine scaled data
+        data = pd.concat([selected_data, new_cases_data, record_info], axis=1)
+
+    else:
+        data = pd.concat([selected_data, record_info], axis=1)
 
 
     x_data = []
@@ -112,23 +129,31 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
     for country in countries:
         country_data = data[data.iso_code == country]
 
+        #generate input values
         splitter = SlidingWindowSplitter(fh=1, window_length=n)
-        samples = splitter.split_series(country_data[attributes].to_numpy())
+        x_samples = splitter.split_series(country_data[attributes].to_numpy())
 
-        for sample in samples:
+        for sample in x_samples:
             x_sample = sample[0].flatten()
-            y_sample = sample[1].flatten()[attributes.index("new_cases")]
 
-            if not np.isnan(np.sum(x_sample)) and not np.isnan(y_sample): #check for nans
+            if not np.isnan(np.sum(x_sample)): #check for nans
                     x_data.append(x_sample)
-                    y_data.append(y_sample)
+
+        #generate target values
+        y_samples = splitter.split_series(country_data["new_cases"].to_numpy())
+
+        for sample in y_samples:
+            y_sample = sample[1].flatten()[0]
+
+            if not np.isnan(y_sample): #check for nans
+                y_data.append(y_sample)
 
     #save data
     if serialize:
-        output = open(path, "wb")
-        pickle.dump((x_data, y_data), output)
-        output.close()
-    
+            output = open(path, "wb")
+            pickle.dump((x_data, y_data), output)
+            output.close()
+
     #enusre that sample number is not out of range
     if len(data.index) > num_of_samples:
         return x_data[:num_of_samples], y_data[:num_of_samples]
