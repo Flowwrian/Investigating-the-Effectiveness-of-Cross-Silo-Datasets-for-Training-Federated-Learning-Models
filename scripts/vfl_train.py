@@ -1,13 +1,16 @@
 import pandas as pd
 import tensorflow as tf
 
-from vfl_models import MLPClientModel, MLPServerModel
+from vfl_models import MLPClientModel, MLPServerModel, LSTMCLientModel
 import helper
 
 CLIENTS = 2
 CLIENT_OUTPUT_NEURONS = 16
+MODEL_TYPE = "LSTM" # ["MLP", "LSTM", "CNN"]
 ATTRIBUTES = ["new_cases", "weekly_hosp_admissions"]
 NUM_OF_SAMPLES = 10
+NUM_OF_HIDDEN_LAYERS = 2
+NUM_HIDDEN_LAYERS_NEURONS = 32
 BATCH_SIZE = 500
 MAX_SAMPLES = 30000
 EPOCHS = 10
@@ -37,11 +40,26 @@ data.append(targets)
 tf_dataset = tf.data.Dataset.zip(tuple(data))
 
 
+match MODEL_TYPE:
+    case "MLP":
+        clients = []
+        for i in range(CLIENTS):
+            clients.append(MLPClientModel(NUM_OF_SAMPLES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS, 'relu')))
+        server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
+
+    case "LSTM":
+        clients = []
+        for i in range(CLIENTS):
+            clients.append(LSTMCLientModel(NUM_OF_SAMPLES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS)))
+        server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
+    case _:
+        raise Exception(f'Unkown model type "{MODEL_TYPE}"')
+
 
 #initialize models
 clients = []
 for i in range(CLIENTS):
-    clients.append(MLPClientModel(10, CLIENT_OUTPUT_NEURONS, (2, 32, 'relu')))
+    clients.append(LSTMCLientModel(10, CLIENT_OUTPUT_NEURONS, (2, 32)))
 server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
 
 
