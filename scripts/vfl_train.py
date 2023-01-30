@@ -76,15 +76,19 @@ for i in range(CLIENTS):
 server_input = tf.concat(outputs, axis=-1)
 server_model(server_input)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001)
+#initzialize optimizers
+optimizer_list = []
+for _ in range(CLIENTS + 1):
+    optimizer_list.append(tf.keras.optimizers.Adam())
 
 #add all variables to a list
 all_trainable_variables = []
-for model in clients:
+for i, model in enumerate(clients):
     all_trainable_variables += model.trainable_variables
+    optimizer_list[i].build(model.trainable_variables)
 all_trainable_variables += server_model.trainable_variables
+optimizer_list[-1].build(server_model.trainable_variables)
 
-optimizer.build(all_trainable_variables)
 
 loss_fn = tf.keras.losses.MeanAbsoluteError()
 
@@ -111,12 +115,12 @@ for epoch in range(EPOCHS):
 
         #apply gradients
         start_idx = 0
-        for model in clients:
+        for i, model in enumerate(clients):
             end_idx = start_idx + len(model.trainable_variables)
-            optimizer.apply_gradients(zip(gradients[start_idx:end_idx], model.trainable_variables)) #type:ignore
+            optimizer_list[i].apply_gradients(zip(gradients[start_idx:end_idx], model.trainable_variables)) #type:ignore
             start_idx = end_idx
         #apply gradient to server model
-        optimizer.apply_gradients(zip(gradients[start_idx:len(server_model.trainable_variables)], server_model.trainable_variables)) #type:ignore
+        optimizer_list[-1].apply_gradients(zip(gradients[start_idx:len(server_model.trainable_variables)], server_model.trainable_variables)) #type:ignore
     print(f'#{epoch} loss: {loss} | gradients: {tf.reduce_sum(gradients[0])}') #type:ignore
     logs.append([epoch, loss.numpy(), tf.reduce_sum(gradients[0]).numpy()]) #type:ignore
 
