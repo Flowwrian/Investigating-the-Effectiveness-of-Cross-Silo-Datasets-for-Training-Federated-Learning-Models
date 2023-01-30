@@ -1,12 +1,12 @@
 import pandas as pd
 import tensorflow as tf
 
-from vfl_models import MLPClientModel, MLPServerModel, LSTMCLientModel
+from vfl_models import MLPClientModel, MLPServerModel, LSTMCLientModel, CNNClientModel
 import helper
 
 CLIENTS = 2
 CLIENT_OUTPUT_NEURONS = 16
-MODEL_TYPE = "LSTM" # ["MLP", "LSTM", "CNN"]
+MODEL_TYPE = "CNN" # ["MLP", "LSTM", "CNN"]
 ATTRIBUTES = ["new_cases", "weekly_hosp_admissions"]
 NUM_OF_SAMPLES = 10
 NUM_OF_HIDDEN_LAYERS = 2
@@ -43,14 +43,19 @@ tf_dataset = tf.data.Dataset.zip(tuple(data))
 match MODEL_TYPE:
     case "MLP":
         clients = []
-        for i in range(CLIENTS):
+        for _ in range(CLIENTS):
             clients.append(MLPClientModel(NUM_OF_SAMPLES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS, 'relu')))
         server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
 
     case "LSTM":
         clients = []
-        for i in range(CLIENTS):
+        for _ in range(CLIENTS):
             clients.append(LSTMCLientModel(NUM_OF_SAMPLES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS)))
+        server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
+    case "CNN":
+        clients = []
+        for _ in range(CLIENTS):
+            clients.append(CNNClientModel(NUM_OF_SAMPLES, CLIENT_OUTPUT_NEURONS,(NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS, 3, 'relu')))
         server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
     case _:
         raise Exception(f'Unkown model type "{MODEL_TYPE}"')
