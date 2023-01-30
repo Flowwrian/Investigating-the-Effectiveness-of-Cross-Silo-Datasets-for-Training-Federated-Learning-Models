@@ -22,28 +22,33 @@ targets = []
 for attribute in ATTRIBUTES:
     if targets == []:
         X, y = helper.get_samples("covid", NUM_OF_SAMPLES, [attribute], "", True, max_samples=MAX_SAMPLES)
-        targets = list(tf.data.Dataset.from_tensor_slices(y).batch(BATCH_SIZE).as_numpy_iterator())
+        targets = tf.data.Dataset.from_tensor_slices(y).batch(BATCH_SIZE)
         
         tf_dataset = tf.data.Dataset.from_tensor_slices(X).batch(BATCH_SIZE)
-        data.append(list(tf_dataset.as_numpy_iterator()))
+        data.append(tf_dataset)
 
     else:
         X, _ = helper.get_samples("covid", NUM_OF_SAMPLES, [attribute], "", True, max_samples=MAX_SAMPLES)
         tf_dataset = tf.data.Dataset.from_tensor_slices(X).batch(BATCH_SIZE)
-        data.append(list(tf_dataset.as_numpy_iterator()))
-num_of_batches = len(targets)
+        data.append(tf_dataset)
+
+#add targets as last entry
+data.append(targets)
+tf_dataset = tf.data.Dataset.zip(tuple(data))
+
+
 
 #initialize models
 clients = []
 for i in range(CLIENTS):
-    clients.append(MLPClientModel(10, CLIENT_OUTPUT_NEURONS, 2))
+    clients.append(MLPClientModel(10, CLIENT_OUTPUT_NEURONS, (2, 32, 'relu')))
 server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
 
 
 #build model
 outputs = []
 for i in range(CLIENTS):
-    input_data = data[i][0]
+    input_data = list(tf_dataset.take(1).as_numpy_iterator())[0][i] #type:ignore
     outputs.append(clients[i](input_data))
 server_input = tf.concat(outputs, axis=-1)
 server_model(server_input)
@@ -63,19 +68,20 @@ loss_fn = tf.keras.losses.MeanAbsoluteError()
 #results are saved in here
 logs = []
 
+
 #start training
 for epoch in range(EPOCHS):
     #forward
-    for batch in range(num_of_batches):
+    for batch in tf_dataset:
         with tf.GradientTape() as tape:
             outputs = []
             #client output
             for i, model in enumerate(clients):
-                outputs.append(model(data[i][batch]))
+                outputs.append(model(batch[i])) #type:ignore
 
             server_input = tf.concat(outputs, axis=-1)
             server_output = server_model(server_input)
-            loss = loss_fn(targets[batch], server_output)
+            loss = loss_fn(batch[-1], server_output) #type:ignore
 
         #compute gradients
         gradients = tape.gradient(loss, all_trainable_variables)
