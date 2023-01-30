@@ -223,7 +223,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
     name (String): Specify which algorithm you want to use.\n
         "linear regression"\n
         "linearSVR"\n
-        "MLP regressor"\n
+        "MLP"\n
         "decision tree" (not implemented yet)\n
         "DL" (not implemented yet)\n
     X: Exogene variables for training and testing.
@@ -234,7 +234,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
     mlp_hidden_layers (int): Number of layers for Multi-layer perceptron.
     testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
     """
-    available_models = ["linear regression", "linearSVR", "MLP regressor", "decision tree", "DL"]
+    available_models = ["linear regression", "linearSVR", "MLP", "decision tree", "DL"]
     available_loss_functions = ["MSE", "MAE", "R2", "MAPE"]
     selected_sk_loss = None
     selected_tf_loss = tf.keras.losses.MeanSquaredError
@@ -270,7 +270,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
             return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
-        case "MLP regressor":
+        case "MLP":
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Input(shape=(input_shape,)))
@@ -290,7 +290,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             raise Exception(f'{name} is not a supported algorithm')
 
 
-def save_results(history: History, args: argparse.Namespace):
+def save_results(history, args: argparse.Namespace):
     """
     Save the results of training to logs.json.
     Args:
@@ -299,7 +299,10 @@ def save_results(history: History, args: argparse.Namespace):
     """
     columns = ["date", "model", "dataset", "rounds", "losses_distributed", "number_of_clients", "entries", "number_of_samples", "attributes", "stations", "scenario", "percentage_of_testing_data", "loss", "epochs", "hidden_layers"]
     date = strftime("%Y-%m-%d %H:%M:%S", localtime())
-    results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history.losses_distributed, args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
+    try: #results if returned from flower simulation
+        results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history.losses_distributed, args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
+    except: #results if returned from vertical FL
+        results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history["losses_distributed"], args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
 
     #read in json file and append new data
     try:
