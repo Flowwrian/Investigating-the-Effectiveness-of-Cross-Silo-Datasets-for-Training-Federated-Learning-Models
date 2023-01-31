@@ -13,12 +13,14 @@ class TFClient(fl.client.NumPyClient):
         X: All exogene variables used in this client.
         Y: All endogene variables used in this client.
         epochs (int): Number of training epochs.
+        batch_size (int): Number of entries per batch.
         test_size (float): Percentage of test size.
     """
 
-    def __init__(self, model: tf.keras.Model, X, Y, epochs: int, test_size: float) -> None:
+    def __init__(self, model: tf.keras.Model, X, Y, epochs: int, batch_size:int, test_size: float) -> None:
         super().__init__()
         self.model = model
+        self.batch_size = batch_size
         self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size)
         self.X_train = np.array(self.X_train)
         self.X_test = np.array(self.X_test)
@@ -31,7 +33,7 @@ class TFClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.model.set_weights(parameters)
-        self.model.fit(self.X_train, self.Y_train, epochs=self.epochs, batch_size=32)
+        self.model.fit(self.X_train, self.Y_train, epochs=self.epochs, batch_size=self.batch_size)
         return self.model.get_weights(), len(self.X_train), {}
 
     def evaluate(self, parameters, config):

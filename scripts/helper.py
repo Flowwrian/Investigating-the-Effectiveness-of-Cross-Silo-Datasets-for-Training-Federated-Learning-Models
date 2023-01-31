@@ -215,7 +215,7 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
         return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
-def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
+def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, hidden_layers: int, epochs: int, batch_size: int, testing_data_percentage: float) -> fl.client.NumPyClient:
     """
     Create a Flower Client.
 
@@ -231,7 +231,9 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
     entries_per_sample (int): Number of X values per sample.
     x_attributes (list): List with names of attributes for X values.
     loss (String): Loss function used for evaluation.
-    hidden_layers (int): Number of layers for Multi-layer perceptron.
+    hidden_layers (int): Number of hidden layers for Tensorflow models.
+    epochs (int): Number of epochs every client trains before sending parameters to the server.
+    batch_size (int): Number of entries per batch. Only relevant for Tensorflow models.
     testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
     """
     available_models = ["linear regression", "linearSVR", "MLP", "decision tree", "DL"]
@@ -283,7 +285,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
                 loss=selected_tf_loss(),
                 metrics=selected_tf_metric())
 
-            return TFClient(model, X, Y, 10, testing_data_percentage)
+            return TFClient(model, X, Y, epochs, batch_size, testing_data_percentage)
 
         case "LSTM":
             input_shape = np.array(X).shape[1]
@@ -300,7 +302,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
                 loss=selected_tf_loss(),
                 metrics=selected_tf_metric())
 
-            return TFClient(model, X, Y, 10, testing_data_percentage)
+            return TFClient(model, X, Y, epochs, batch_size, testing_data_percentage)
 
         case "CNN":
             input_shape = np.array(X).shape[1]
@@ -317,16 +319,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
                 metrics= selected_tf_metric()
             )
 
-            return TFClient(model, X, Y, 10, testing_data_percentage)
-
-
-
-
-
-
-
-
-
+            return TFClient(model, X, Y, epochs, batch_size, testing_data_percentage)
 
         case _:
             raise Exception(f'{name} is not a supported algorithm')

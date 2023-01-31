@@ -38,6 +38,7 @@ def parse_args():
                         help="OPTIONAL percentage of data used for training")
     parser.add_argument("--epochs", "--ep", type=int, default=10,
                         help="OPTIONAL number of epochs; only relevant for Tensorflow models")
+    parser.add_argument("--batch_size", "--b", type=int, default=32, help="OPTIONAL size of training batches; only relevant for Tensorflow models")
     parser.add_argument("--hidden_layers", "--hl", type=int, default=1,
                         help="OPTIONAL number of hidden layers; only relevant for Tensorflow models")
     parser.add_argument("--verbosity", "--v", type=bool,
@@ -67,12 +68,12 @@ if __name__ == "__main__":
     # Clients
     NUMBER_OF_CLIENTS = args.clients
     # Model
-    # "linear regression", "linearSVR", "MLP regressor", ("decision tree", "DL" not implemented yet)
     MODEL = args.model
     # "MSE", "MAE", "R2" (R2 only works for scikit-learn models)
     LOSS = args.loss
     # Tensorflow options
     EPOCHS = args.epochs
+    BATCH_SIZE = args.batch_size
     MLP_HIDDEN_LAYERS = args.hidden_layers
 
     # Misc
@@ -119,7 +120,7 @@ if __name__ == "__main__":
             y_train_cid = y_train[idx_from:idx_to]
 
         client = helper.create_client(MODEL, x_train_cid, y_train_cid, ENTRIES_PER_SAMPLE,
-                                      ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, PERCENTAGE_OF_TESTING_DATA)
+                                      ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, EPOCHS, BATCH_SIZE, PERCENTAGE_OF_TESTING_DATA)
         return client
 
     # start simulation
@@ -144,7 +145,8 @@ if __name__ == "__main__":
             num_of_clients=NUMBER_OF_CLIENTS,
             num_of_hidden_layers=MLP_HIDDEN_LAYERS,
             max_samples=NUMBER_OF_SAMPLES,
-            epochs=ROUNDS
+            epochs=ROUNDS,
+            batch_size=BATCH_SIZE
         )
         if LOG:
             helper.save_results(hist, args)
