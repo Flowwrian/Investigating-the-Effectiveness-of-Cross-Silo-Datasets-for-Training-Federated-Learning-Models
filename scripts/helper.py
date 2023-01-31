@@ -215,7 +215,7 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
         return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
-def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, mlp_hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
+def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, hidden_layers: int, testing_data_percentage: float) -> fl.client.NumPyClient:
     """
     Create a Flower Client.
 
@@ -231,7 +231,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
     entries_per_sample (int): Number of X values per sample.
     x_attributes (list): List with names of attributes for X values.
     loss (String): Loss function used for evaluation.
-    mlp_hidden_layers (int): Number of layers for Multi-layer perceptron.
+    hidden_layers (int): Number of layers for Multi-layer perceptron.
     testing_data_percentage (float): Percentage of data used for testing. Must be between 0 and 1.
     """
     available_models = ["linear regression", "linearSVR", "MLP", "decision tree", "DL"]
@@ -275,15 +275,57 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Input(shape=(input_shape,)))
             #add hidden layers
-            for _ in range(mlp_hidden_layers):
-                model.add(tf.keras.layers.Dense(64))
-            model.add(tf.keras.layers.Dense(1))
+            for _ in range(hidden_layers):
+                model.add(tf.keras.layers.Dense(64, activation="relu"))
+            model.add(tf.keras.layers.Dense(1, activation="linear"))
 
             model.compile(optimizer=tf.keras.optimizers.Adam(),
                 loss=selected_tf_loss(),
                 metrics=selected_tf_metric())
 
-            return TFClient(model, X, Y, 10, 0.2)
+            return TFClient(model, X, Y, 10, testing_data_percentage)
+
+        case "LSTM":
+            input_shape = np.array(X).shape[1]
+            model = tf.keras.Sequential()
+            model.add(tf.keras.layers.Reshape((input_shape, len(x_attributes)), input_shape=(input_shape,)))
+            for _ in range(hidden_layers - 1):
+                model.add(tf.keras.layers.LSTM(32, return_sequences=True))
+            model.add(tf.keras.layers.LSTM(32))
+            model.add(tf.keras.layers.Dense(32, activation="relu"))
+            model.add(tf.keras.layers.Dense(32, activation="relu"))
+            model.add(tf.keras.layers.Dense(1, activation="linear"))
+
+            model.compile(optimizer=tf.keras.optimizers.Adam(),
+                loss=selected_tf_loss(),
+                metrics=selected_tf_metric())
+
+            return TFClient(model, X, Y, 10, testing_data_percentage)
+
+        case "CNN":
+            input_shape = np.array(X).shape[1]
+            model = tf.keras.Sequential()
+            model.add(tf.keras.layers.Reshape((input_shape, len(x_attributes)), input_shape=(input_shape,)))
+            for _ in range(hidden_layers):
+                model.add(tf.keras.layers.Conv1D(32, 3, activation="relu"))
+            model.add(tf.keras.layers.Dense(32, activation="relu"))
+            model.add(tf.keras.layers.Dense(32, activation="relu"))
+            model.add(tf.keras.layers.Dense(1, activation="linear"))
+
+            model.compile(optimizer=tf.keras.optimizers.Adam(),
+                loss= selected_tf_loss(),
+                metrics= selected_tf_metric()
+            )
+
+            return TFClient(model, X, Y, 10, testing_data_percentage)
+
+
+
+
+
+
+
+
 
 
         case _:

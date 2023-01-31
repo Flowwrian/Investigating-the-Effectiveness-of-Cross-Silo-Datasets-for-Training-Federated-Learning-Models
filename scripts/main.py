@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="A sandbox FL environment")
 
     parser.add_argument("--model", "--m", type=str, required=True, choices=[
-                        "linear regression", "linearSVR", "MLP"], help="ML algorithm used for trining")
+                        "linear regression", "linearSVR", "MLP", "LSTM", "CNN"], help="ML algorithm used for trining")
     parser.add_argument("--dataset", "--d", type=str, required=True,
                         choices=["covid", "weather"], help="dataset used for training")
     parser.add_argument("--attributes", "--a", nargs="+",
