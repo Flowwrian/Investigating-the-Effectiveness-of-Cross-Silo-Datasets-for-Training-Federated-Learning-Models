@@ -142,6 +142,7 @@ if __name__ == "__main__":
             attributes=ATTRIBUTES,
             model_type=MODEL,
             num_of_entries=ENTRIES_PER_SAMPLE,
+            test_percentage=PERCENTAGE_OF_TESTING_DATA,
             num_of_clients=NUMBER_OF_CLIENTS,
             num_of_hidden_layers=MLP_HIDDEN_LAYERS,
             max_samples=NUMBER_OF_SAMPLES,

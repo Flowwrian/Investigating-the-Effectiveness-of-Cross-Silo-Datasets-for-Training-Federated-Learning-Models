@@ -1,16 +1,19 @@
+from math import floor
+
 import pandas as pd
 import tensorflow as tf
 
 from vfl_models import MLPClientModel, MLPServerModel, LSTMCLientModel, CNNClientModel
 import helper
 
-def start_vertical_federated_learning_simulation(attributes: list[str], model_type: str, num_of_entries: int, num_of_clients=2, client_output_neurons=16, num_of_hidden_layers=2, neurons_per_hidden_layer=32, batch_size=500, max_samples=30000, epochs=10):
+def start_vertical_federated_learning_simulation(attributes: list[str], model_type: str, num_of_entries: int, test_percentage: float, num_of_clients=2, client_output_neurons=16, num_of_hidden_layers=2, neurons_per_hidden_layer=32, batch_size=500, max_samples=30000, epochs=10):
     """
     Start vertical federated learning.\n
     Args:\n
         `attributes` (list[str]): List of attributes used from the covid dataset
         `model_type` (str): Selected model architecture; available options: "MLP", "LSTM", "CNN"
         `num_of_entries` (int): Number of entries per sample
+        `test_percentage` (float): Percentage of data used for testing
         `num_of_clients` (int): Number of clients
         `client_output_neurons` (int): Number of output neurons of every client
         `num_of_hidden_layers` (int): Number of hidden layers for client models
@@ -24,6 +27,7 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
     MODEL_TYPE = model_type # ["MLP", "LSTM", "CNN"]
     ATTRIBUTES = attributes # ["new_cases", "weekly_hosp_admissions"]
     NUM_OF_ENTRIES = num_of_entries
+    TEST_PERCENTAGE = test_percentage
     NUM_OF_HIDDEN_LAYERS = num_of_hidden_layers
     NUM_HIDDEN_LAYERS_NEURONS = neurons_per_hidden_layer
     BATCH_SIZE = batch_size
@@ -41,7 +45,7 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
         if targets == []:
             X, y = helper.get_samples("covid", NUM_OF_ENTRIES, [attribute], "", True, max_samples=MAX_SAMPLES)
             targets = tf.data.Dataset.from_tensor_slices(y).batch(BATCH_SIZE)
-            
+
             tf_dataset = tf.data.Dataset.from_tensor_slices(X).batch(BATCH_SIZE)
             data.append(tf_dataset)
 
@@ -53,6 +57,12 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
     #add targets as last entry
     data.append(targets)
     tf_dataset = tf.data.Dataset.zip(tuple(data))
+
+    #create test dataset
+    test_dataset_length = floor((MAX_SAMPLES/BATCH_SIZE)*TEST_PERCENTAGE)
+    tf_test_dataset = tf_dataset.take(test_dataset_length)
+    tf_dataset = tf_dataset.skip(test_dataset_length)
+    print(f'Training batches: {len(list(tf_dataset.as_numpy_iterator()))}, Validation batches: {len(list(tf_test_dataset.as_numpy_iterator()))}')
 
 
     match MODEL_TYPE:
@@ -67,11 +77,13 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
             for _ in range(CLIENTS):
                 clients.append(LSTMCLientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS)))
             server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
+        
         case "CNN":
             clients = []
             for _ in range(CLIENTS):
                 clients.append(CNNClientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS,(NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS, 3, 'relu')))
             server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
+        
         case _:
             raise Exception(f'Unkown model type "{MODEL_TYPE}"')
 
@@ -109,7 +121,7 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
 
     #results are saved in here
     logs = []
-    losses = []
+    test_losses = []
 
 
     #start training
@@ -137,11 +149,24 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
                 start_idx = end_idx
             #apply gradient to server model
             optimizer_list[-1].apply_gradients(zip(gradients[start_idx:len(server_model.trainable_variables)], server_model.trainable_variables)) #type:ignore
-        print(f'#{epoch} loss: {loss} | gradients: {tf.reduce_sum(gradients[0])}') #type:ignore
+
+        #calculate loss on test dataset
+        test_loss = 0
+        for test_batch in tf_test_dataset:
+            outputs = []
+            for i, model in enumerate(clients):
+                outputs.append(model(test_batch[i])) #type:ignore
+            server_input = tf.concat(outputs, axis=-1)
+            server_output = server_model(server_input)
+            test_loss += loss_fn(test_batch[-1], server_output).numpy() #type:ignore
+        test_loss = test_loss / test_dataset_length
+
+
+        print(f'#{epoch} loss: {loss} | gradients: {tf.reduce_sum(gradients[0])} | test loss: {test_loss}') #type:ignore
         logs.append([epoch, loss.numpy(), tf.reduce_sum(gradients[0]).numpy()]) #type:ignore
-        losses.append((epoch+1, loss.numpy())) #type:ignore
+        test_losses.append((epoch+1, test_loss)) #type:ignore
 
     df = pd.DataFrame(logs, columns=["epoch", "loss", "gradient"])
     print(df.head())
     #return losses (must be in the same shape as flower history object for serialization)
-    return {"losses_distributed": losses}
+    return {"losses_distributed": test_losses}
