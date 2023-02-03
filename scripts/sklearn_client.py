@@ -1,3 +1,5 @@
+import time
+
 import flwr as fl
 from sklearn.model_selection import train_test_split
 
@@ -37,7 +39,7 @@ class SklearnClient(fl.client.NumPyClient):
         self._set_model_params(self.model, parameters)
         loss = self.loss(self.Y_test, self.model.predict(self.X_test))
 
-        return loss, len(self.X_test), {"accuracy": self.model.score(self.X_test, self.Y_test)}
+        return loss, len(self.X_test), {"accuracy": self.model.score(self.X_test, self.Y_test), "time": time.perf_counter()}
 
     def info(self):
         print(f'Class: {self.model} \nNumber of training samples: {len(self.X_train)}\nNumber of testing samples: {len(self.X_test)}')

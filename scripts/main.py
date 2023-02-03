@@ -129,7 +129,10 @@ if __name__ == "__main__":
         hist = flwr.simulation.start_simulation(
             client_fn=client_fn,
             num_clients=NUMBER_OF_CLIENTS,
-            config=flwr.server.ServerConfig(num_rounds=ROUNDS)
+            config=flwr.server.ServerConfig(num_rounds=ROUNDS),
+            strategy=flwr.server.strategy.FedAvg(
+                evaluate_metrics_aggregation_fn=helper.training_time
+            )
         )
         print(
             f'Training finished after {time.time() - start_simulation_timer}')

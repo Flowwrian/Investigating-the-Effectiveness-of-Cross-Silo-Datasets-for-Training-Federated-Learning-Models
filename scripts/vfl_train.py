@@ -1,4 +1,5 @@
 from math import floor
+import time
 
 import pandas as pd
 import tensorflow as tf
@@ -122,6 +123,7 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
     #results are saved in here
     logs = []
     test_losses = []
+    timestamps = []
 
 
     #start training
@@ -166,7 +168,10 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
         logs.append([epoch, loss.numpy(), tf.reduce_sum(gradients[0]).numpy()]) #type:ignore
         test_losses.append((epoch+1, test_loss)) #type:ignore
 
+        timestamps.append((epoch+1,time.perf_counter()))
+
     df = pd.DataFrame(logs, columns=["epoch", "loss", "gradient"])
+    df["time"] = timestamps
     print(df.head())
     #return losses (must be in the same shape as flower history object for serialization)
-    return {"losses_distributed": test_losses}
+    return {"losses_distributed": test_losses, "time": timestamps}

@@ -332,12 +332,12 @@ def save_results(history, args: argparse.Namespace):
         history (flwr.server.History): History object returned from simulation.
         args (argparse.Namespace):  Selected training options.
     """
-    columns = ["date", "model", "dataset", "rounds", "losses_distributed", "number_of_clients", "entries", "number_of_samples", "attributes", "stations", "scenario", "percentage_of_testing_data", "loss", "epochs", "hidden_layers"]
+    columns = ["date", "model", "dataset", "rounds", "losses_distributed", "time", "number_of_clients", "entries", "number_of_samples", "attributes", "stations", "scenario", "percentage_of_testing_data", "loss", "epochs", "hidden_layers"]
     date = strftime("%Y-%m-%d %H:%M:%S", localtime())
     try: #results if returned from flower simulation
-        results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history.losses_distributed, args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
+        results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history.losses_distributed, history.metrics_distributed["time"], args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
     except: #results if returned from vertical FL
-        results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history["losses_distributed"], args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
+        results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history["losses_distributed"], history["time"], args.clients, args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
 
     #read in json file and append new data
     try:
@@ -347,3 +347,8 @@ def save_results(history, args: argparse.Namespace):
     except:
         results.to_json(Path(__file__).parent.parent.joinpath("logs.json"))
         print("New logs.json file created. Results saved.")
+
+def training_time(metrics):
+    #return the timestamp of the last trained client
+    times = [m["time"] for i, m in metrics]
+    return {"time": times[-1]}

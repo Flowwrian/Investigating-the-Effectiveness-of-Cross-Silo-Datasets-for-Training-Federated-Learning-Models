@@ -1,3 +1,5 @@
+import time
+
 import flwr as fl
 import numpy as np
 import tensorflow as tf
@@ -27,6 +29,7 @@ class TFClient(fl.client.NumPyClient):
         self.Y_train = np.array(self.Y_train)
         self.Y_test = np.array(self.Y_test)
         self.epochs = epochs
+        #print(f'Model created\nx: {len(X)}\nx train: {len(self.X_train)}\ny train: {len(self.Y_train)}\nx test: {len(self.X_test)}\ny test: {len(self.Y_test)}\nepochs: {self.epochs}\nbatch size: {self.batch_size}\n test size: {test_size}')
 
     def get_parameters(self, config):
         return self.model.get_weights()
@@ -39,7 +42,7 @@ class TFClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         self.model.set_weights(parameters)
         loss, accuracy = self.model.evaluate(self.X_test, self.Y_test)
-        return loss, len(self.X_test), {"accuracy": float(accuracy)}
+        return loss, len(self.X_test), {"accuracy": float(accuracy), "time": time.perf_counter()}
 
     def info(self):
         self.model.summary()
