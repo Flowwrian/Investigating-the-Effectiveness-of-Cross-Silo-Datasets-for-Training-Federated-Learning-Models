@@ -20,7 +20,7 @@ from sklearn_client import SklearnClient
 from tf_client import TFClient
 
 
-def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, serialize: bool, max_samples: int = 100000):
+def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, serialize: bool, max_samples: int = 100000, standardize = False):
     """
     Generate samples from a given dataset. The samples are created by using a rolling window.
     Args:
@@ -34,7 +34,7 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, ser
         return _get_samples_from_covid_data(n, x_attributes, max_samples, serialize)
 
     elif dataset == "weather":
-        return _get_samples_from_weather_data(n, x_attributes, station, max_samples, serialize)
+        return _get_samples_from_weather_data(n, x_attributes, station, max_samples, serialize, standardize)
 
     else:
         raise Exception(f'{dataset} is an unknown dataset')
@@ -161,58 +161,43 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
         return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
 
 
-def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_of_samples: int, serialize: bool):
+def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_of_samples: int, serialize: bool, standardize = False):
+
     #load data
-    dataset_path = Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv")
-    data = pd.read_csv(dataset_path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
-
-    #load data if already serialized
-    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'weather_{n}_{station}_{"_".join(attributes)}.pkl')
-    if path.exists():
-        pkl_file = open(path, 'rb')
-        x_data, y_data = pickle.load(pkl_file)
-        pkl_file.close()
-        
-        if len(data.index) > num_of_samples:
-            return x_data[:num_of_samples], y_data[:num_of_samples]
-
-        else:
-            return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
+    path = Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv")
+    data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
 
 
     #scale the data
-    data = data.drop("time", axis=1)
-    data_columns = data.columns
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data)
-    data = pd.DataFrame(scaled_data, columns=data_columns)
+    if standardize:
+        data = data.drop("time", axis=1)
+        data_columns = data.columns
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(data)
+        data = pd.DataFrame(scaled_data, columns=data_columns)
+
+    data = data[attributes]
+    data = data.dropna()
+
+    X = np.empty(shape=(num_of_samples, n))
+    y = np.empty(shape=(num_of_samples,))
+
 
     #split the data
     splitter = SlidingWindowSplitter(fh=1, window_length=n)
     samples = splitter.split_series(data[attributes].to_numpy())
 
-    x_data = []
-    y_data = []
+    i = 0
+    for features, label in samples:
+        X[i] = features.flatten()
+        y[i] = label[0]
 
-    for sample in samples:
-        x_sample = sample[0].flatten()
-        y_sample = sample[1].flatten()[0] #the endogene temperature variable
+        i += 1
 
-        if not np.isnan(np.sum(x_sample)) and not np.isnan(y_sample): #check for nans
-            x_data.append(x_sample)
-            y_data.append(y_sample)
+        if i == num_of_samples:
+            break
 
-    #save data
-    if serialize:
-        output = open(path, "wb")
-        pickle.dump((x_data, y_data), output)
-        output.close()
-
-    #enusre that sample number is not out of range
-    if len(data.index) > num_of_samples:
-        return x_data[:num_of_samples], y_data[:num_of_samples]
-    else:
-        return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
+    return X, y
 
 
 def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, loss: str, hidden_layers: int, epochs: int, batch_size: int, testing_data_percentage: float) -> fl.client.NumPyClient:

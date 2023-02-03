@@ -32,6 +32,7 @@ def parse_args():
                         help="OPTIONAL number of past days values to predict the next days target value")
     parser.add_argument("--samples", "--sa", type=int,
                         default=100000, help="OPTIONAL number of records to use")
+    parser.add_argument("--standardize", "--std", type=bool, default=False, help="OPTIONAL standardize data before training")
     parser.add_argument("--scenario", "--sc", type=str, choices=["separate", "mixed"], default="separate",
                         help="OPTIONAL scenario of training. Can either be an federated learning or distributed learning setting")
     parser.add_argument("--testing_data", "--t", type=float, default=0.2,
@@ -41,8 +42,6 @@ def parse_args():
     parser.add_argument("--batch_size", "--b", type=int, default=32, help="OPTIONAL size of training batches; only relevant for Tensorflow models")
     parser.add_argument("--hidden_layers", "--hl", type=int, default=1,
                         help="OPTIONAL number of hidden layers; only relevant for Tensorflow models")
-    parser.add_argument("--verbosity", "--v", type=bool,
-                        default=True, help="OPTIONAL verbosity of the output")
     parser.add_argument("--serialize", "--se", type=bool, default=True,
                         help="OPTIONAL serialize the sampled data. Drastically reduces time preprocessing the data")
     parser.add_argument("--log", type=bool, default=False,
@@ -60,6 +59,7 @@ if __name__ == "__main__":
     ENTRIES_PER_SAMPLE = args.entries
     NUMBER_OF_SAMPLES = args.samples
     ATTRIBUTES = args.attributes
+    STANDARDIZE = args.standardize
     # Weather station details
     STATIONS = args.stations
     FL_SCENARIO = args.scenario  # "mixed", "separate"
@@ -77,7 +77,6 @@ if __name__ == "__main__":
     MLP_HIDDEN_LAYERS = args.hidden_layers
 
     # Misc
-    VERBOSE = args.verbosity
     SERIALIZE = args.serialize
     LOG = args.log
 
@@ -85,7 +84,6 @@ if __name__ == "__main__":
     helper.check_separate_weather_data(
         DATA, FL_SCENARIO, STATIONS, NUMBER_OF_CLIENTS)
 
-    start_sampling_timer = time.time()
     # preprocess data
     if DATA == "weather" and FL_SCENARIO == "mixed":
         samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
@@ -95,20 +93,16 @@ if __name__ == "__main__":
         # combine all stations data
         for station in STATIONS:
             new_x_train, new_y_train = helper.get_samples(
-                DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, station, SERIALIZE, samples_per_station)
+                DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, station, SERIALIZE, samples_per_station, STANDARDIZE)
             x_train = x_train + new_x_train
             y_train = y_train + new_x_train
-
-    if VERBOSE:
-        print(f'Data loaded after {time.time() - start_sampling_timer}')
-        print(f'{DATA} data loaded\nSplit into {NUMBER_OF_SAMPLES} samples')
 
     def client_fn(cid: str) -> flwr.client.NumPyClient:
         # create data for separate weather test case
         if DATA == "weather" and FL_SCENARIO == "separate":
             samples_per_station = math.floor(NUMBER_OF_SAMPLES/len(STATIONS))
             x_train_cid, y_train_cid = helper.get_samples(
-                DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[int(cid)], SERIALIZE, samples_per_station)
+                DATA, ENTRIES_PER_SAMPLE, ATTRIBUTES, STATIONS[int(cid)], SERIALIZE, samples_per_station, STANDARDIZE)
 
         # all other test cases
         else:
@@ -134,8 +128,6 @@ if __name__ == "__main__":
                 evaluate_metrics_aggregation_fn=helper.training_time
             )
         )
-        print(
-            f'Training finished after {time.time() - start_simulation_timer}')
 
         if LOG:
             helper.save_results(hist, args)
