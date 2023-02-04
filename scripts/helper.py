@@ -177,9 +177,10 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
         data = pd.DataFrame(scaled_data, columns=data_columns)
 
     data = data[attributes]
-    data = data.dropna()
+    #data = data.dropna()
+    data = data.fillna(method="pad")
 
-    X = np.empty(shape=(num_of_samples, n))
+    X = np.empty(shape=(num_of_samples, n*len(attributes)))
     y = np.empty(shape=(num_of_samples,))
 
 
@@ -190,7 +191,7 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
     i = 0
     for features, label in samples:
         X[i] = features.flatten()
-        y[i] = label[0]
+        y[i] = label[0][0]
 
         i += 1
 
