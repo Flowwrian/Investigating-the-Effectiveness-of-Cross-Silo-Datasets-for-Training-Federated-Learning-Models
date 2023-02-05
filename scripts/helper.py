@@ -79,7 +79,7 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
     data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "horizontal", "covid", "owid-covid-data.csv"))
 
     #load data if already serialized
-    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'covid_{n}n_{num_of_samples}samples_{"_".join(attributes)}.pkl')
+    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'covid_{n}n_{num_of_samples}samples_{"_".join(attributes)}_{standardize}scaled.pkl')
     if path.exists():
         pkl_file = open(path, 'rb')
         X, y = pickle.load(pkl_file)
