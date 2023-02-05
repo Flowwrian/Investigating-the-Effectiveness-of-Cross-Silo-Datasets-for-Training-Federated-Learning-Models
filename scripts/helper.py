@@ -13,7 +13,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVR
-from sklearn.tree import DecisionTreeRegressor
 from sktime.forecasting.model_selection import SlidingWindowSplitter
 
 from sklearn_client import SklearnClient
@@ -243,25 +242,30 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
 
     match name:
         case "linear regression":
-            model = LinearRegression()
+            model = LinearRegression(fit_intercept=False, positive=True)
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
             return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
         case "linearSVR":
-            model = LinearSVR()
+            model = LinearSVR(C=0.1, epsilon=0, tol=0.00001)
             set_initial_parameters(model, (entries_per_sample-1) * len(x_attributes))
             return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
         case "MLP":
+            optimal_parameters = [328, 488, 432, 136, 288]
+
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Input(shape=(input_shape,)))
             #add hidden layers
-            for _ in range(hidden_layers):
-                model.add(tf.keras.layers.Dense(64, activation="relu"))
+            for i in range(hidden_layers):
+                try:
+                    model.add(tf.keras.layers.Dense(optimal_parameters[i], activation="relu"))
+                except:
+                    model.add(tf.keras.layers.Dense(32, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
 
-            model.compile(optimizer=tf.keras.optimizers.Adam(),
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
                 loss=selected_tf_loss(),
                 metrics=selected_tf_metric())
 
@@ -272,29 +276,36 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Reshape((input_shape/len(x_attributes), len(x_attributes)), input_shape=(input_shape,)))
             for _ in range(hidden_layers - 1):
-                model.add(tf.keras.layers.LSTM(32, return_sequences=True))
-            model.add(tf.keras.layers.LSTM(32))
-            model.add(tf.keras.layers.Dense(32, activation="relu"))
-            model.add(tf.keras.layers.Dense(32, activation="relu"))
+                model.add(tf.keras.layers.LSTM(96, return_sequences=True))
+            model.add(tf.keras.layers.LSTM(64))
+            model.add(tf.keras.layers.Dense(24, activation="relu"))
+            model.add(tf.keras.layers.Dense(16, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
 
-            model.compile(optimizer=tf.keras.optimizers.Adam(),
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
                 loss=selected_tf_loss(),
                 metrics=selected_tf_metric())
 
             return TFClient(model, X, Y, epochs, batch_size, testing_data_percentage)
 
         case "CNN":
+            optimal_filter = [64, 96, 96, 96]
+            optimal_kernel = [3, 3, 4, 3]
+
+
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
             model.add(tf.keras.layers.Reshape((input_shape/len(x_attributes), len(x_attributes)), input_shape=(input_shape,)))
-            for _ in range(hidden_layers):
-                model.add(tf.keras.layers.Conv1D(32, 3, activation="relu"))
-            model.add(tf.keras.layers.Dense(32, activation="relu"))
-            model.add(tf.keras.layers.Dense(32, activation="relu"))
+            for i in range(hidden_layers):
+                try:
+                    model.add(tf.keras.layers.Conv1D(optimal_filter[i], optimal_kernel[i], activation="relu"))
+                except:
+                    model.add(tf.keras.layers.Conv1D(64, 3, activation="relu"))
+            model.add(tf.keras.layers.Dense(112, activation="relu"))
+            model.add(tf.keras.layers.Dense(104, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
 
-            model.compile(optimizer=tf.keras.optimizers.Adam(),
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
                 loss= selected_tf_loss(),
                 metrics= selected_tf_metric()
             )

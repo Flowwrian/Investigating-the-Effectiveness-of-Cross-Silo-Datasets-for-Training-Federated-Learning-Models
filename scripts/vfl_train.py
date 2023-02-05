@@ -7,7 +7,7 @@ import tensorflow as tf
 from vfl_models import MLPClientModel, MLPServerModel, LSTMCLientModel, CNNClientModel
 import helper
 
-def start_vertical_federated_learning_simulation(attributes: list[str], model_type: str, num_of_entries: int, test_percentage: float, num_of_clients=2, client_output_neurons=16, num_of_hidden_layers=2, neurons_per_hidden_layer=32, batch_size=500, max_samples=30000, epochs=10):
+def start_vertical_federated_learning_simulation(attributes: list[str], model_type: str, num_of_entries: int, test_percentage: float, num_of_clients=2, client_output_neurons=16, num_of_hidden_layers=2, batch_size=500, max_samples=30000, epochs=10):
     """
     Start vertical federated learning.\n
     Args:\n
@@ -30,7 +30,6 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
     NUM_OF_ENTRIES = num_of_entries
     TEST_PERCENTAGE = test_percentage
     NUM_OF_HIDDEN_LAYERS = num_of_hidden_layers
-    NUM_HIDDEN_LAYERS_NEURONS = neurons_per_hidden_layer
     BATCH_SIZE = batch_size
     MAX_SAMPLES = max_samples
     EPOCHS = epochs
@@ -70,30 +69,23 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
         case "MLP":
             clients = []
             for _ in range(CLIENTS):
-                clients.append(MLPClientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS, 'relu')))
+                clients.append(MLPClientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, 'relu')))
             server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
 
         case "LSTM":
             clients = []
             for _ in range(CLIENTS):
-                clients.append(LSTMCLientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS, (NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS)))
+                clients.append(LSTMCLientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS, NUM_OF_HIDDEN_LAYERS))
             server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
         
         case "CNN":
             clients = []
             for _ in range(CLIENTS):
-                clients.append(CNNClientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS,(NUM_OF_HIDDEN_LAYERS, NUM_HIDDEN_LAYERS_NEURONS, 3, 'relu')))
+                clients.append(CNNClientModel(NUM_OF_ENTRIES, CLIENT_OUTPUT_NEURONS,(NUM_OF_HIDDEN_LAYERS, 'relu')))
             server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
         
         case _:
             raise Exception(f'Unkown model type "{MODEL_TYPE}"')
-
-
-    #initialize models
-    clients = []
-    for i in range(CLIENTS):
-        clients.append(LSTMCLientModel(10, CLIENT_OUTPUT_NEURONS, (2, 32)))
-    server_model = MLPServerModel(CLIENT_OUTPUT_NEURONS*CLIENTS)
 
 
     #build model
