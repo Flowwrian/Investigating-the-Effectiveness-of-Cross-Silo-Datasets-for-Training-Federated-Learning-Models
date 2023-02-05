@@ -141,9 +141,19 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
 
 def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_of_samples: int, serialize: bool, standardize = False):
 
+    #load data if already serialized
+    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'weather_{n}n_{num_of_samples}samples_{"_".join(attributes)}_{standardize}scaled.pkl')
+    if path.exists():
+        pkl_file = open(path, 'rb')
+        X, y = pickle.load(pkl_file)
+        pkl_file.close()
+        
+        return X, y 
+    
+    
+    
     #load data
-    path = Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv")
-    data = pd.read_csv(path, names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
+    data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv"), names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
 
 
     #scale the data
@@ -175,6 +185,12 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
 
         if i == num_of_samples:
             break
+
+    #save data
+    if serialize:
+            output = open(path, "wb")
+            pickle.dump((X, y), output)
+            output.close()
 
     return X, y
 
