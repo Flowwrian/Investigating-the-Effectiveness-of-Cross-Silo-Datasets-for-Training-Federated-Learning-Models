@@ -31,7 +31,7 @@ def get_samples(dataset: str, n: int, x_attributes: list[str], station: str, ser
         max_samples (int): Maximum amount returned samples.
     """
     if dataset == "covid": #Ensure that only data from the same country gets into one sample
-        return _get_samples_from_covid_data(n, x_attributes, max_samples, serialize)
+        return _get_samples_from_covid_data(n, x_attributes, max_samples, serialize, standardize)
 
     elif dataset == "weather":
         return _get_samples_from_weather_data(n, x_attributes, station, max_samples, serialize, standardize)
@@ -66,7 +66,7 @@ def _check_for_nans(data: DataFrame) -> bool:
 
 
 
-def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int, serialize: bool):
+def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: int, serialize: bool, standardize=True):
     """
     Generates samples from the covid dataset.
     Args:
@@ -79,17 +79,13 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
     data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "horizontal", "covid", "owid-covid-data.csv"))
 
     #load data if already serialized
-    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'covid_{n}_{"_".join(attributes)}.pkl')
+    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'covid_{n}n_{num_of_samples}samples_{"_".join(attributes)}.pkl')
     if path.exists():
         pkl_file = open(path, 'rb')
-        x_data, y_data = pickle.load(pkl_file)
+        X, y = pickle.load(pkl_file)
         pkl_file.close()
         
-        if len(data.index) > num_of_samples:
-            return x_data[:num_of_samples], y_data[:num_of_samples]
-
-        else:
-            return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
+        return X, y 
 
     #fill nan with 0
     data[attributes] = data[attributes].fillna(0)
@@ -99,66 +95,48 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
     record_info = data[["iso_code", "continent", "location", "date", "tests_units"]]
 
     #scale selected attributes
-    selected_data = data[attributes]
-    selected_data_columns = selected_data.columns
-    scaler = StandardScaler()
-    scaled_selected_data = scaler.fit_transform(selected_data)
-    selected_data = pd.DataFrame(scaled_selected_data, columns=selected_data_columns)
-
-    #scale 'new_cases' (target)
-    if not "new_cases" in attributes:
-        new_cases_data = data[["new_cases"]]
+    if standardize:
+        selected_data = data[attributes]
+        selected_data_columns = selected_data.columns
         scaler = StandardScaler()
-        scaled_new_cases_data = scaler.fit_transform(new_cases_data)
-        new_cases_data = pd.DataFrame(scaled_new_cases_data, columns=["new_cases"])
-
-        #combine scaled data
-        data = pd.concat([selected_data, new_cases_data, record_info], axis=1)
-
-    else:
+        scaled_selected_data = scaler.fit_transform(selected_data)
+        selected_data = pd.DataFrame(scaled_selected_data, columns=selected_data_columns)
         data = pd.concat([selected_data, record_info], axis=1)
 
 
-    x_data = []
-    y_data = []
+    X = np.empty(shape=(num_of_samples, n*len(attributes)))
+    y = np.empty(shape=(num_of_samples,))
 
-    #split the data
     countries = data.iso_code.drop_duplicates(keep="first")
     countries = countries[countries != "ESH"] #drop ESH because it only has one entry
 
+    i = 0
     for country in countries:
         country_data = data[data.iso_code == country]
 
-        #generate input values
         splitter = SlidingWindowSplitter(fh=1, window_length=n)
-        x_samples = splitter.split_series(country_data[attributes].to_numpy())
+        samples = splitter.split_series(country_data[attributes].to_numpy())
 
-        for sample in x_samples:
-            x_sample = sample[0].flatten()
+        for features, labels in samples:
+            X[i] = features.flatten()
+            y[i] = labels.flatten()[0]
 
-            if not np.isnan(np.sum(x_sample)): #check for nans
-                    x_data.append(x_sample)
+            i += 1
 
-        #generate target values
-        y_samples = splitter.split_series(country_data["new_cases"].to_numpy())
+            if i == num_of_samples:
+                break
 
-        for sample in y_samples:
-            y_sample = sample[1].flatten()[0]
-
-            if not np.isnan(y_sample): #check for nans
-                y_data.append(y_sample)
+        if i == num_of_samples:
+            break
 
     #save data
     if serialize:
             output = open(path, "wb")
-            pickle.dump((x_data, y_data), output)
+            pickle.dump((X, y), output)
             output.close()
 
-    #enusre that sample number is not out of range
-    if len(data.index) > num_of_samples:
-        return x_data[:num_of_samples], y_data[:num_of_samples]
-    else:
-        return x_data[:len(data.index) - 1], y_data[:len(data.index) - 1]
+    return X, y
+
 
 
 def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_of_samples: int, serialize: bool, standardize = False):
@@ -177,8 +155,8 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
         data = pd.DataFrame(scaled_data, columns=data_columns)
 
     data = data[attributes]
-    #data = data.dropna()
-    data = data.fillna(method="pad")
+    data = data.dropna()
+    #data = data.fillna(method="pad")
 
     X = np.empty(shape=(num_of_samples, n*len(attributes)))
     y = np.empty(shape=(num_of_samples,))
@@ -191,7 +169,7 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
     i = 0
     for features, label in samples:
         X[i] = features.flatten()
-        y[i] = label[0][0]
+        y[i] = label.flatten()[0]
 
         i += 1
 
@@ -276,7 +254,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
         case "LSTM":
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
-            model.add(tf.keras.layers.Reshape((input_shape, len(x_attributes)), input_shape=(input_shape,)))
+            model.add(tf.keras.layers.Reshape((input_shape/len(x_attributes), len(x_attributes)), input_shape=(input_shape,)))
             for _ in range(hidden_layers - 1):
                 model.add(tf.keras.layers.LSTM(32, return_sequences=True))
             model.add(tf.keras.layers.LSTM(32))
@@ -293,7 +271,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
         case "CNN":
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
-            model.add(tf.keras.layers.Reshape((input_shape, len(x_attributes)), input_shape=(input_shape,)))
+            model.add(tf.keras.layers.Reshape((input_shape/len(x_attributes), len(x_attributes)), input_shape=(input_shape,)))
             for _ in range(hidden_layers):
                 model.add(tf.keras.layers.Conv1D(32, 3, activation="relu"))
             model.add(tf.keras.layers.Dense(32, activation="relu"))
