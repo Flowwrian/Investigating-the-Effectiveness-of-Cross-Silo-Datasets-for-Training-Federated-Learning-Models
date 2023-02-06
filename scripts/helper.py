@@ -141,7 +141,7 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
 def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_of_samples: int, serialize: bool, standardize = False):
 
     #load data if already serialized
-    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'weather_{n}n_{num_of_samples}samples_{"_".join(attributes)}_{standardize}scaled.pkl')
+    path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'weather_{n}n_{num_of_samples}samples_{station}_{"_".join(attributes)}_{standardize}scaled.pkl')
     if path.exists():
         pkl_file = open(path, 'rb')
         X, y = pickle.load(pkl_file)
@@ -298,9 +298,9 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             model.add(tf.keras.layers.Reshape((int(input_shape/len(x_attributes)), len(x_attributes)), input_shape=(input_shape,)))
             for i in range(hidden_layers):
                 try:
-                    model.add(tf.keras.layers.Conv1D(optimal_filter[i], optimal_kernel[i], activation="relu"))
+                    model.add(tf.keras.layers.Conv1D(optimal_filter[i], optimal_kernel[i], padding="same", activation="relu"))
                 except:
-                    model.add(tf.keras.layers.Conv1D(64, 3, activation="relu"))
+                    model.add(tf.keras.layers.Conv1D(64, 3, padding="same", activation="relu"))
             model.add(tf.keras.layers.Dense(112, activation="relu"))
             model.add(tf.keras.layers.Dense(104, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
