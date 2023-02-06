@@ -58,7 +58,7 @@ do
             do
                 for b in "${covid_batch_size[@]}"
                 do
-                    python main.py --m "$m" --d covid --attributes "${covid_features[@]:0:$c}" --r "$e" --c "$c" --sa 100000 --l MAE --batch_size "$b" --standardize True --hidden_layers "$h" --batch_size "$b" --log True
+                    python main.py --m "$m" --d covid --attributes "${covid_features[@]:0:$c}" --r "$e" --c "$c" --sa 100000 --l MAE --standardize True --hidden_layers "$h" --batch_size "$b" --log True
                 done
             done
         done
