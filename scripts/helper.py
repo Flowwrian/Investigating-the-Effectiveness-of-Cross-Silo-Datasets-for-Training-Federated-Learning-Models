@@ -274,7 +274,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
         case "LSTM":
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
-            model.add(tf.keras.layers.Reshape((input_shape/len(x_attributes), len(x_attributes)), input_shape=(input_shape,)))
+            model.add(tf.keras.layers.Reshape((int(input_shape/len(x_attributes)), len(x_attributes)), input_shape=(input_shape,)))
             for _ in range(hidden_layers - 1):
                 model.add(tf.keras.layers.LSTM(96, return_sequences=True))
             model.add(tf.keras.layers.LSTM(64))
@@ -295,7 +295,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
 
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
-            model.add(tf.keras.layers.Reshape((input_shape/len(x_attributes), len(x_attributes)), input_shape=(input_shape,)))
+            model.add(tf.keras.layers.Reshape((int(input_shape/len(x_attributes)), len(x_attributes)), input_shape=(input_shape,)))
             for i in range(hidden_layers):
                 try:
                     model.add(tf.keras.layers.Conv1D(optimal_filter[i], optimal_kernel[i], activation="relu"))

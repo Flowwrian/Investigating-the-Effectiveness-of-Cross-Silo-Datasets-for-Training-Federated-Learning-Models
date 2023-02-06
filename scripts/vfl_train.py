@@ -7,7 +7,7 @@ import tensorflow as tf
 from vfl_models import MLPClientModel, MLPServerModel, LSTMCLientModel, CNNClientModel
 import helper
 
-def start_vertical_federated_learning_simulation(attributes: list[str], model_type: str, num_of_entries: int, test_percentage: float, num_of_clients=2, client_output_neurons=16, num_of_hidden_layers=2, batch_size=500, max_samples=30000, epochs=10):
+def start_vertical_federated_learning_simulation(attributes: list[str], model_type: str, num_of_entries: int, test_percentage: float, num_of_clients=2, client_output_neurons=16, num_of_hidden_layers=2, batch_size=500, max_samples=30000, epochs=10, standardize = True):
     """
     Start vertical federated learning.\n
     Args:\n
@@ -22,6 +22,7 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
         `batch_size` (int): Batch size
         `max_samples` (int): Number of samples used for training; If larger than available records, the whole dataset gets used
         `epochs` (int): Number of epochs
+        `standardize` (bool): If True data is scaled with StandardScaler
     """
     CLIENTS = num_of_clients
     CLIENT_OUTPUT_NEURONS = client_output_neurons
@@ -43,14 +44,14 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
     targets = []
     for attribute in ATTRIBUTES:
         if targets == []:
-            X, y = helper.get_samples("covid", NUM_OF_ENTRIES, [attribute], "", True, max_samples=MAX_SAMPLES)
+            X, y = helper.get_samples("covid", NUM_OF_ENTRIES, [attribute], "", True, max_samples=MAX_SAMPLES, standardize=standardize)
             targets = tf.data.Dataset.from_tensor_slices(y).batch(BATCH_SIZE)
 
             tf_dataset = tf.data.Dataset.from_tensor_slices(X).batch(BATCH_SIZE)
             data.append(tf_dataset)
 
         else:
-            X, _ = helper.get_samples("covid", NUM_OF_ENTRIES, [attribute], "", True, max_samples=MAX_SAMPLES)
+            X, _ = helper.get_samples("covid", NUM_OF_ENTRIES, [attribute], "", True, max_samples=MAX_SAMPLES, standardize=standardize)
             tf_dataset = tf.data.Dataset.from_tensor_slices(X).batch(BATCH_SIZE)
             data.append(tf_dataset)
 
@@ -97,9 +98,18 @@ def start_vertical_federated_learning_simulation(attributes: list[str], model_ty
     server_model(server_input)
 
     #initzialize optimizers
-    optimizer_list = []
-    for _ in range(CLIENTS + 1):
-        optimizer_list.append(tf.keras.optimizers.Adam())
+    if MODEL_TYPE == "MLP":
+        optimizer_list = []
+        for _ in range(CLIENTS + 1):
+            optimizer_list.append(tf.keras.optimizers.Adam(0.0001))
+    elif MODEL_TYPE == "CNN":
+        optimizer_list = []
+        for _ in range(CLIENTS + 1):
+            optimizer_list.append(tf.keras.optimizers.Adam(0.001))
+    else:
+        optimizer_list = []
+        for _ in range(CLIENTS + 1):
+            optimizer_list.append(tf.keras.optimizers.Adam(0.01))
 
     #add all variables to a list
     all_trainable_variables = []

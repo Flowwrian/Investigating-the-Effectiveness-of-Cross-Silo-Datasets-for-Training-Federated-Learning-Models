@@ -142,7 +142,8 @@ if __name__ == "__main__":
             num_of_hidden_layers=MLP_HIDDEN_LAYERS,
             max_samples=NUMBER_OF_SAMPLES,
             epochs=ROUNDS,
-            batch_size=BATCH_SIZE
+            batch_size=BATCH_SIZE,
+            standardize=STANDARDIZE
         )
         if LOG:
             helper.save_results(hist, args)
