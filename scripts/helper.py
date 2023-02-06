@@ -75,7 +75,7 @@ def _get_samples_from_covid_data(n: int, attributes: list[str], num_of_samples: 
     """
 
     #load data
-    data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "horizontal", "covid", "owid-covid-data.csv"))
+    data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "vertical", "covid", "owid-covid-data.csv"))
 
     #load data if already serialized
     path = Path(__file__).parent.parent.joinpath("datasets", "samples", f'covid_{n}n_{num_of_samples}samples_{"_".join(attributes)}_{standardize}scaled.pkl')
@@ -152,7 +152,7 @@ def _get_samples_from_weather_data(n: int, attributes: list, station: str, num_o
     
     
     #load data
-    data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "vertical", "weather", f"{station}.csv"), names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
+    data = pd.read_csv(Path(__file__).parent.parent.joinpath("datasets", "horizontal", "weather", f"{station}.csv"), names=["time", "temp", "dwpt", "rhum", "prcp", "snow", "wdir", "wspd", "wpgt", "pres", "tsun", "coco"])
 
 
     #scale the data
