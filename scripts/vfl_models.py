@@ -114,12 +114,14 @@ class CNNClientModel(tf.keras.Model):
             except:
                 layer = tf.keras.layers.Conv1D(32, 3, padding="same", activation=hidden_layer_parameters[1])
                 self.hidden_layers.append(layer)
+        self.flatten = tf.keras.layers.Flatten()
         self.output_layer = tf.keras.layers.Dense(output_neurons, activation='relu')
 
     def call(self, x):
         x = self.input_layer(x)
         for layer in self.hidden_layers:
             x = layer(x)
+        x = self.flatten(x)
         x = self.output_layer(x)
 
         return x
