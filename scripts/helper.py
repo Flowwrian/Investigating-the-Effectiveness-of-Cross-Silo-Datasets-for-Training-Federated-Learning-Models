@@ -301,6 +301,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
                     model.add(tf.keras.layers.Conv1D(optimal_filter[i], optimal_kernel[i], padding="same", activation="relu"))
                 except:
                     model.add(tf.keras.layers.Conv1D(64, 3, padding="same", activation="relu"))
+            model.add(tf.keras.layers.Flatten())
             model.add(tf.keras.layers.Dense(112, activation="relu"))
             model.add(tf.keras.layers.Dense(104, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
