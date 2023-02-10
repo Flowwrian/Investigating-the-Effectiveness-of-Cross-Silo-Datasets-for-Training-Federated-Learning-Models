@@ -4,6 +4,8 @@ import os
 import time
 
 import flwr
+import numpy as np
+from sklearn.metrics import mean_absolute_error
 
 import helper
 import vfl_train
@@ -32,14 +34,16 @@ def parse_args():
                         help="OPTIONAL number of past days values to predict the next days target value")
     parser.add_argument("--samples", "--sa", type=int,
                         default=100000, help="OPTIONAL number of records to use")
-    parser.add_argument("--standardize", "--std", type=bool, default=False, help="OPTIONAL standardize data before training")
+    parser.add_argument("--standardize", "--std", type=bool,
+                        default=False, help="OPTIONAL standardize data before training")
     parser.add_argument("--scenario", "--sc", type=str, choices=["separate", "mixed"], default="separate",
                         help="OPTIONAL scenario of training. Can either be an federated learning or distributed learning setting")
     parser.add_argument("--testing_data", "--t", type=float, default=0.2,
                         help="OPTIONAL percentage of data used for training")
     parser.add_argument("--epochs", "--ep", type=int, default=10,
                         help="OPTIONAL number of epochs; only relevant for Tensorflow models")
-    parser.add_argument("--batch_size", "--b", type=int, default=32, help="OPTIONAL size of training batches; only relevant for Tensorflow models")
+    parser.add_argument("--batch_size", "--b", type=int, default=32,
+                        help="OPTIONAL size of training batches; only relevant for Tensorflow models")
     parser.add_argument("--hidden_layers", "--hl", type=int, default=1,
                         help="OPTIONAL number of hidden layers; only relevant for Tensorflow models")
     parser.add_argument("--serialize", "--se", type=bool, default=True,
@@ -119,18 +123,40 @@ if __name__ == "__main__":
 
     # start simulation
     if DATA == "weather":
+        # load test dataset
+        X_test, y_test = helper.load_test_dataset("weather")
+
         start_simulation_timer = time.time()
         hist = flwr.simulation.start_simulation(
             client_fn=client_fn,
             num_clients=NUMBER_OF_CLIENTS,
             config=flwr.server.ServerConfig(num_rounds=ROUNDS),
             strategy=flwr.server.strategy.FedAvg(
-                evaluate_metrics_aggregation_fn=helper.training_time
+                evaluate_metrics_aggregation_fn=helper.client_parameters
             )
         )
 
+        # create testing model
+        test_model = helper.create_client(MODEL, X_test, y_test, ENTRIES_PER_SAMPLE,
+                                          ATTRIBUTES, LOSS, MLP_HIDDEN_LAYERS, EPOCHS, BATCH_SIZE, PERCENTAGE_OF_TESTING_DATA, model_only=True)
+
+        # set parameters
+        if MODEL == "MLP" or MODEL == "LSTM" or MODEL == "CNN":
+            test_model.set_weights(
+                hist.metrics_distributed["parameters"][-1][-1])
+            res = test_model.evaluate(X_test, y_test)
+            print(res)
+
+        else:
+            if hasattr(test_model, "intercept_"):
+                test_model.intercept_ = hist.metrics_distributed["parameters"][-1][-1][1]
+            test_model.coef_ = hist.metrics_distributed["parameters"][-1][-1][0]
+            res = mean_absolute_error(y_test, test_model.predict(X_test))
+            print(res)
+
+        # log the results
         if LOG:
-            helper.save_results(hist, args)
+            helper.save_results(hist, args, res)
 
     elif DATA == "covid":
         hist = vfl_train.start_vertical_federated_learning_simulation(
@@ -146,7 +172,8 @@ if __name__ == "__main__":
             standardize=STANDARDIZE
         )
         if LOG:
-            helper.save_results(hist, args)
+            # TODO remove 5; only a placeholder
+            helper.save_results(hist, args, 5)
 
     else:
         raise Exception(f'Unknown dataset "{DATA}".')

@@ -19,7 +19,7 @@ class SklearnClient(fl.client.NumPyClient):
     def __init__(self, model, X, Y, loss, test_size: float) -> None:
         super().__init__()
         self.model = model
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size, random_state=42)
         self.loss = loss
 
 
@@ -39,7 +39,7 @@ class SklearnClient(fl.client.NumPyClient):
         self._set_model_params(self.model, parameters)
         loss = self.loss(self.Y_test, self.model.predict(self.X_test))
 
-        return loss, len(self.X_test), {"accuracy": self.model.score(self.X_test, self.Y_test), "time": time.perf_counter()}
+        return loss, len(self.X_test), {"accuracy": self.model.score(self.X_test, self.Y_test), "time": time.perf_counter(), "parameters": self._get_model_params(self.model)}
 
     def info(self):
         print(f'Class: {self.model} \nNumber of training samples: {len(self.X_train)}\nNumber of testing samples: {len(self.X_test)}')

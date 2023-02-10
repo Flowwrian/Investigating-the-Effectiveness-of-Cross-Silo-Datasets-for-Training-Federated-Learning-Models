@@ -23,7 +23,7 @@ class TFClient(fl.client.NumPyClient):
         super().__init__()
         self.model = model
         self.batch_size = batch_size
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size, random_state=42)
         self.X_train = np.array(self.X_train)
         self.X_test = np.array(self.X_test)
         self.Y_train = np.array(self.Y_train)
@@ -42,7 +42,7 @@ class TFClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         self.model.set_weights(parameters)
         loss, accuracy = self.model.evaluate(self.X_test, self.Y_test)
-        return loss, len(self.X_test), {"accuracy": float(accuracy), "time": time.perf_counter()}
+        return loss, len(self.X_test), {"accuracy": float(accuracy), "time": time.perf_counter(), "parameters": self.model.get_weights()}
 
     def info(self):
         self.model.summary()
