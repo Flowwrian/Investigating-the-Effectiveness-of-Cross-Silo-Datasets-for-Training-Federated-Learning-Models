@@ -5,12 +5,13 @@ cd scripts/
 
 #define arguments
 declare -a datasets=("covid" "weather")
-declare -a clients=(2 4)
+declare -a clients=(2 3 4 5 6 7 8 9 10)
+declare -a vfl_clients=(2 3 4)
 declare -a rounds=(2 4)
 declare -a sk_models=("linear regression" "linearSVR")
 declare -a tf_models=("MLP" "LSTM" "CNN")
 
-declare -a stations=("berlin_alexanderplatz" "frankfurt_am_main_westend" "hamburg_airport" "leipzig" "muenchen" "potsdam")
+declare -a stations=("berlin_alexanderplatz" "frankfurt_am_main_westend" "hamburg_airport" "leipzig" "muenchen" "potsdam", "hannover", "koeln_bonn_airport", "stuttgart_schnarrenberg", "weimar")
 declare -a covid_features=("new_cases" "weekly_hosp_admissions" "new_deaths" "weekly_icu_admissions")
 
 declare -a epochs=(2 10)

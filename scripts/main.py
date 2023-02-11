@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument("--loss", "--l", type=str, required=True, choices=[
                         "MSE", "MAE", "R2", "MAPE"], help="selected loss function (R2 only available for Scikit-learn models)")
     parser.add_argument("--stations", "--st", nargs="+", choices=["berlin_alexanderplatz", "frankfurt_am_main_westend", "hamburg_airport",
-                        "leipzig", "muenchen", "potsdam"], default=["berlin"], help="OPTIONAL selected weather stations; only relevant for 'weather' dataset")
+                        "leipzig", "muenchen", "potsdam", "hannover", "koeln_bonn_airport", "stuttgart_schnarrenberg", "weimar"], default=["berlin"], help="OPTIONAL selected weather stations; only relevant for 'weather' dataset")
     parser.add_argument("--entries", "--e", type=int, default=10,
                         help="OPTIONAL number of past days values to predict the next days target value")
     parser.add_argument("--samples", "--sa", type=int,
@@ -172,8 +172,7 @@ if __name__ == "__main__":
             standardize=STANDARDIZE
         )
         if LOG:
-            # TODO remove 5; only a placeholder
-            helper.save_results(hist, args, 5)
+            helper.save_results(hist, args, np.NaN)
 
     else:
         raise Exception(f'Unknown dataset "{DATA}".')
