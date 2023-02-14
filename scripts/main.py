@@ -145,6 +145,7 @@ if __name__ == "__main__":
             test_model.set_weights(
                 hist.metrics_distributed["parameters"][-1][-1])
             res = test_model.evaluate(X_test, y_test)
+            res = res[-1]
             print(res)
 
         else:

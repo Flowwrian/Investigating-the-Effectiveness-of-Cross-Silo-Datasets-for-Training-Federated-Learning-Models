@@ -251,7 +251,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
         case "linearSVR":
-            model = LinearSVR(C=0.1, epsilon=0, tol=0.00001)
+            model = LinearSVR(C=0.2, epsilon=0.1, tol=0.0001)
             set_initial_parameters(
                 model, (entries_per_sample-1) * len(x_attributes))
 
@@ -261,7 +261,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             return SklearnClient(model, X, Y, selected_sk_loss, testing_data_percentage)
 
         case "MLP":
-            optimal_parameters = [328, 488, 432, 136, 288]
+            optimal_parameters = [248, 272, 176, 408, 456]
 
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
@@ -275,7 +275,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
                     model.add(tf.keras.layers.Dense(32, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
 
-            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
                           loss=selected_tf_loss(),
                           metrics=selected_tf_metric())
 
@@ -290,7 +290,7 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             model.add(tf.keras.layers.Reshape(
                 (int(input_shape/len(x_attributes)), len(x_attributes)), input_shape=(input_shape,)))
             for _ in range(hidden_layers - 1):
-                model.add(tf.keras.layers.LSTM(96, return_sequences=True))
+                model.add(tf.keras.layers.LSTM(128, return_sequences=True))
             model.add(tf.keras.layers.LSTM(64))
             model.add(tf.keras.layers.Dense(24, activation="relu"))
             model.add(tf.keras.layers.Dense(16, activation="relu"))
@@ -306,8 +306,8 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
             return TFClient(model, X, Y, epochs, batch_size, testing_data_percentage)
 
         case "CNN":
-            optimal_filter = [64, 96, 96, 96]
-            optimal_kernel = [3, 3, 4, 3]
+            optimal_filter = [128, 96]
+            optimal_kernel = [2, 3]
 
             input_shape = np.array(X).shape[1]
             model = tf.keras.Sequential()
@@ -321,8 +321,8 @@ def create_client(name: str, X, Y, entries_per_sample: int, x_attributes: list, 
                     model.add(tf.keras.layers.Conv1D(
                         64, 3, padding="same", activation="relu"))
             model.add(tf.keras.layers.Flatten())
-            model.add(tf.keras.layers.Dense(112, activation="relu"))
             model.add(tf.keras.layers.Dense(104, activation="relu"))
+            model.add(tf.keras.layers.Dense(40, activation="relu"))
             model.add(tf.keras.layers.Dense(1, activation="linear"))
 
             model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
@@ -347,14 +347,14 @@ def save_results(history, args: argparse.Namespace, centralized_loss):
         args (argparse.Namespace):  Selected training options.
     """
     columns = ["date", "model", "dataset", "rounds", "losses_distributed", "centralized_loss", "time", "number_of_clients", "entries",
-               "number_of_samples", "attributes", "stations", "scenario", "percentage_of_testing_data", "loss", "epochs", "hidden_layers"]
+               "number_of_samples", "attributes", "stations", "scenario", "percentage_of_testing_data", "loss", "epochs", "hidden_layers", "batch_size"]
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:  # results if returned from flower simulation
         results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history.losses_distributed, centralized_loss, history.metrics_distributed["time"], args.clients,
-                               args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
+                               args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers, args.batch_size]], columns=columns)
     except:  # results if returned from vertical FL
         results = pd.DataFrame([[date, args.model, args.dataset, args.rounds, history["losses_distributed"], centralized_loss, history["time"], args.clients,
-                               args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers]], columns=columns)
+                               args.entries, args.samples, args.attributes, args.stations, args.scenario, args.testing_data, args.loss, args.epochs, args.hidden_layers, args.batch_size]], columns=columns)
 
     # read in json file and append new data
     try:

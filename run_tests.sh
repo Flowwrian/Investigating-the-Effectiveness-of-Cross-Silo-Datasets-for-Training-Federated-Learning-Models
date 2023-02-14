@@ -5,13 +5,13 @@ cd scripts/
 
 #define arguments
 declare -a datasets=("covid" "weather")
-declare -a clients=(2 3 4 5 6 7 8 9 10)
+declare -a clients=(2 3 4 5 10)
 declare -a vfl_clients=(2 3 4)
 declare -a rounds=(2 4)
 declare -a sk_models=("linear regression" "linearSVR")
 declare -a tf_models=("MLP" "LSTM" "CNN")
 
-declare -a stations=("berlin_alexanderplatz" "frankfurt_am_main_westend" "hamburg_airport" "leipzig" "muenchen" "potsdam", "hannover", "koeln_bonn_airport", "stuttgart_schnarrenberg", "weimar")
+declare -a stations=("berlin_alexanderplatz" "frankfurt_am_main_westend" "hamburg_airport" "leipzig" "muenchen" "potsdam" "hannover" "koeln_bonn_airport" "stuttgart_schnarrenberg" "weimar")
 declare -a covid_features=("new_cases" "weekly_hosp_admissions" "new_deaths" "weekly_icu_admissions")
 
 declare -a epochs=(2 10)
@@ -40,7 +40,7 @@ do
                 do
                     for b in "${weather_batch_size[@]}"
                     do
-                        python main.py --m "$m" --d weather --attributes temp rhum dwpt --r "$r" --c "$c" --sa 10000 --l MAE --batch_size 32 --standardize True --stations ${stations[@]:0:$c} --epochs "$e" --hidden_layers "$h" --batch_size "$b" --log True
+                        python main.py --m "$m" --d weather --attributes temp rhum dwpt --r "$r" --c "$c" --sa 10000 --l MAE --standardize True --stations ${stations[@]:0:$c} --epochs "$e" --hidden_layers "$h" --batch_size "$b" --log True
                     done
                 done
             done
@@ -49,7 +49,7 @@ do
 done
 
 #covid dataset
-for c in "${clients[@]}"
+for c in "${vfl_clients[@]}"
 do
     for e in "${epochs[@]}"
     do
