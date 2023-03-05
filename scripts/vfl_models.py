@@ -1,4 +1,5 @@
 import tensorflow as tf
+import math
 
 #MLP
 class MLPClientModel(tf.keras.Model):
@@ -68,7 +69,7 @@ class LSTMCLientModel(tf.keras.Model):
     def __init__(self, inputs: int, output_neurons: int, num_of_hidden_layers = 2):
         super().__init__()
 
-        self.input_layer = tf.keras.layers.Reshape((inputs, 1), input_shape=(inputs,))
+        self.input_layer = tf.keras.layers.Reshape((10, math.floor(inputs/10)), input_shape=(inputs,))
         self.hidden_layers = []
         for _ in range(num_of_hidden_layers - 1):
             layer = tf.keras.layers.LSTM(64, return_sequences=True)
@@ -102,7 +103,7 @@ class CNNClientModel(tf.keras.Model):
     """
     def __init__(self, inputs: int, output_neurons: int, hidden_layer_parameters = (2,'relu')):
         super().__init__()
-        self.input_layer = tf.keras.layers.Reshape((inputs,1), input_shape=(inputs,))
+        self.input_layer = tf.keras.layers.Reshape((10, math.floor(inputs/10)), input_shape=(inputs,))
         self.hidden_layers = []
         self.filters = [64, 128, 32]
         self.kernel_size = [2, 4, 4]
