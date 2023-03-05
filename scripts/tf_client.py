@@ -19,31 +19,53 @@ class TFClient(fl.client.NumPyClient):
         test_size (float): Percentage of test size.
     """
 
-    def __init__(self, model: tf.keras.Model, X, Y, epochs: int, batch_size:int, test_size: float) -> None:
+    def __init__(
+        self,
+        model: tf.keras.Model,
+        X,
+        Y,
+        epochs: int,
+        batch_size: int,
+        test_size: float,
+    ) -> None:
         super().__init__()
         self.model = model
         self.batch_size = batch_size
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(X, Y, test_size=test_size, random_state=42)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(
+            X, Y, test_size=test_size, random_state=42
+        )
         self.X_train = np.array(self.X_train)
         self.X_test = np.array(self.X_test)
         self.Y_train = np.array(self.Y_train)
         self.Y_test = np.array(self.Y_test)
         self.epochs = epochs
-        #print(f'Model created\nx: {len(X)}\nx train: {len(self.X_train)}\ny train: {len(self.Y_train)}\nx test: {len(self.X_test)}\ny test: {len(self.Y_test)}\nepochs: {self.epochs}\nbatch size: {self.batch_size}\n test size: {test_size}')
+        # print(f'Model created\nx: {len(X)}\nx train: {len(self.X_train)}\ny train: {len(self.Y_train)}\nx test: {len(self.X_test)}\ny test: {len(self.Y_test)}\nepochs: {self.epochs}\nbatch size: {self.batch_size}\n test size: {test_size}')
 
     def get_parameters(self, config):
         return self.model.get_weights()
 
     def fit(self, parameters, config):
         self.model.set_weights(parameters)
-        self.model.fit(self.X_train, self.Y_train, epochs=self.epochs, batch_size=self.batch_size)
+        self.model.fit(
+            self.X_train, self.Y_train, epochs=self.epochs, batch_size=self.batch_size
+        )
         return self.model.get_weights(), len(self.X_train), {}
 
     def evaluate(self, parameters, config):
         self.model.set_weights(parameters)
         loss, accuracy = self.model.evaluate(self.X_test, self.Y_test)
-        return loss, len(self.X_test), {"accuracy": float(accuracy), "time": time.perf_counter(), "parameters": self.model.get_weights()}
+        return (
+            loss,
+            len(self.X_test),
+            {
+                "accuracy": float(accuracy),
+                "time": time.perf_counter(),
+                "parameters": self.model.get_weights(),
+            },
+        )
 
     def info(self):
         self.model.summary()
-        print(f'Number of training samples: {len(self.X_train)}\nNumber of testing samples: {len(self.X_test)}\nEpochs: {str(self.epochs)}')
+        print(
+            f"Number of training samples: {len(self.X_train)}\nNumber of testing samples: {len(self.X_test)}\nEpochs: {str(self.epochs)}"
+        )
